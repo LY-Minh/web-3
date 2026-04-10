@@ -1,0 +1,2 @@
+ALTER TABLE "files" ADD COLUMN "uploaded_by_id" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "files" ADD CONSTRAINT "files_uploaded_by_id_user_id_fk" FOREIGN KEY ("uploaded_by_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;
