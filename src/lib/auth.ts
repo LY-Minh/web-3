@@ -24,7 +24,11 @@ import * as schema from "@/db/schema/auth-schema";
     plugins: [
         admin() 
     ],
+    session: {
+        expiresIn: 604800
+    },
     emailAndPassword: { 
     enabled: true, 
+    minPasswordLength: 8,
     }, 
 });

@@ -9,7 +9,7 @@ export const claimStatusEnum = pgEnum("claim_status", ["pending", "approved", "r
 
 
 
-export const items = pgTable("items", {
+export const itemsTable = pgTable("items", {
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
     description: text("description"),
@@ -21,9 +21,9 @@ export const items = pgTable("items", {
 
 });
 
-export const claims = pgTable("claims", {
+export const claimsTable = pgTable("claims", {
     id: uuid("id").defaultRandom().primaryKey(),
-    itemId: uuid("item_id").references(() => items.id).notNull(),
+    itemId: uuid("item_id").references(() => itemsTable.id).notNull(),
     studentId: text("student_id").references(() => user.id).notNull(),
     proofDescription: text("proof_description").notNull(),
     status: claimStatusEnum("status").default("pending").notNull(),
@@ -32,11 +32,11 @@ export const claims = pgTable("claims", {
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const files = pgTable("files", {
+export const filesTable = pgTable("files", {
     id: uuid("id").defaultRandom().primaryKey(),
     // File can be off an item or a claim
-    itemId: uuid("item_id").references(() => items.id), 
-    claimId: uuid("claim_id").references(() => claims.id),
+    itemId: uuid("item_id").references(() => itemsTable.id),
+    claimId: uuid("claim_id").references(() => claimsTable.id),
     fileName: text("file_name").notNull(),
     fileType: text("file_type"),
     fileUrl: text("file_url").notNull(), 
@@ -45,10 +45,10 @@ export const files = pgTable("files", {
     uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
 
-export const pickupAgreements = pgTable("pickup_agreements", {
+export const pickupAgreementsTable = pgTable("pickup_agreements", {
     id: uuid("id").defaultRandom().primaryKey(),
-    claimId: uuid("claim_id").references(() => claims.id).notNull(),
-    itemId: uuid("item_id").references(() => items.id).notNull(),
+    claimId: uuid("claim_id").references(() => claimsTable.id).notNull(),
+    itemId: uuid("item_id").references(() => itemsTable.id).notNull(),
     studentId: text("student_id").references(() => user.id).notNull(),
     signedAt: timestamp("signed_at").defaultNow().notNull(),
     adminId: text("admin_id").references(() => user.id).notNull(),
