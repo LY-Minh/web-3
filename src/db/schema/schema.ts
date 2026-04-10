@@ -1,23 +1,12 @@
-import { sign } from "crypto";
-import { pgTable, text, timestamp, boolean, uuid, pgEnum } from "drizzle-orm/pg-core";
 
-// --- ENUMS ---
+import { pgTable, text, timestamp, uuid, pgEnum } from "drizzle-orm/pg-core";
+import { user } from "./auth-schema";
+
+// enums
 export const userRoleEnum = pgEnum("user_role", ["student", "admin"]);
 export const itemStatusEnum = pgEnum("item_status", ["lost", "claimed", "approved_claim", "returned"]);
 export const claimStatusEnum = pgEnum("claim_status", ["pending", "approved", "rejected"]);
 
-// --- BETTER AUTH TABLES ---
-export const user = pgTable("user", {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: boolean("emailVerified").notNull(),
-    image: text("image"),
-    createdAt: timestamp("createdAt").notNull(),
-    updatedAt: timestamp("updatedAt").notNull(),
-    // Custom RBAC role for Student vs Admin
-    role: userRoleEnum("role").default("student").notNull(), 
-});
 
 
 export const items = pgTable("items", {
@@ -29,7 +18,7 @@ export const items = pgTable("items", {
     registeredById: text("registered_by_id").references(() => user.id).notNull(), 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
-    test:text("test").notNull(),
+
 });
 
 export const claims = pgTable("claims", {
