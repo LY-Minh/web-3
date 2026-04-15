@@ -195,78 +195,73 @@
   object-fit: cover;
 }
 
-.heroBanner {
-  margin: 30px 30px 22px;
-  background: linear-gradient(135deg, #edf2fb 0%, #f8fbff 100%);
-  border: 1px solid #e7edf7;
-  border-radius: 22px;
-  padding: 34px 34px 28px;
+.settingsSection {
+  margin: 30px;
 }
 
-.heroBanner h2 {
-  font-family: Georgia, "Times New Roman", serif;
-  text-align: center;
-  font-size: 28px;
-  color: #26344d;
-  margin-bottom: 10px;
-  font-weight: 400;
-}
-
-.heroBanner h2 strong {
-  font-weight: 800;
-  color: #1e2d47;
-}
-
-.heroBanner p {
-  text-align: center;
-  color: #72819c;
-  font-size: 15px;
-}
-
-.formSection {
-  margin: 0 30px 30px;
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr);
-  gap: 22px;
-}
-
-.formCard,
-.tipCard,
-.previewCard {
+.settingsCard {
   background: #fff;
   border: 1px solid #dfe7f2;
   border-radius: 24px;
+  padding: 30px;
   box-shadow: 0 8px 24px rgba(18, 36, 73, 0.04);
 }
 
-.formCard {
-  padding: 28px;
-}
-
-.cardHeader {
-  margin-bottom: 24px;
-}
-
-.cardHeader h3,
-.tipCard h3,
-.previewCard h3 {
+.cardHeader h2 {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 28px;
-  font-weight: bold;
-  color: #22314d;
-  margin-bottom: 6px;
+  font-size: 30px;
+  color: #24324a;
+  margin: 0 0 8px;
 }
 
-.cardHeader p,
-.previewCard p {
-  color: #7b889f;
-  font-size: 15px;
+.cardHeader p {
+  margin: 0 0 26px;
+  color: #6e7d97;
 }
 
-.reportForm {
+.settingsForm {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+}
+
+.profileImageSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.profileImageWrap {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #e6edf7;
+}
+
+.profileImageLarge {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.changePhotoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  border: none;
+  border-radius: 14px;
+  padding: 0 18px;
+  background: #eef3fb;
+  color: #31415f;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .formGrid {
@@ -288,193 +283,31 @@
 }
 
 .formGroup input,
-.formGroup textarea,
-.selectWrap select {
+.formGroup textarea {
   width: 100%;
   border: 1px solid #dbe3f0;
   border-radius: 18px;
   background: #fff;
-  padding: 0 18px;
+  padding: 16px 18px;
   font-size: 16px;
   color: #31415f;
   outline: none;
   font-family: var(--font-sans);
-  box-shadow: 0 2px 10px rgba(15, 35, 70, 0.03);
 }
 
-.formGroup input,
-.selectWrap select {
-  height: 60px;
+.formGroup input {
+  height: 58px;
 }
 
 .formGroup textarea {
-  padding: 18px;
   resize: vertical;
-  min-height: 150px;
+  min-height: 140px;
 }
 
 .formGroup input:focus,
-.formGroup textarea:focus,
-.selectWrap select:focus {
+.formGroup textarea:focus {
   border-color: #3b6cff;
   box-shadow: 0 0 0 4px rgba(59, 108, 255, 0.12);
-}
-
-.selectWrap {
-  position: relative;
-}
-
-.selectWrap select {
-  appearance: none;
-  padding-right: 48px;
-}
-
-.selectWrap svg {
-  position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #8391aa;
-  pointer-events: none;
-}
-
-.uploadBox {
-  border: 1.5px dashed #c8d5ea;
-  background: #f9fbff;
-  border-radius: 22px;
-  padding: 32px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.uploadBox svg {
-  color: #1b56d8;
-  margin-bottom: 12px;
-}
-
-.uploadBox h4 {
-  font-size: 19px;
-  color: #23314d;
-  margin-bottom: 6px;
-}
-
-.uploadBox p {
-  color: #7f8ca5;
-  margin-bottom: 16px;
-}
-
-.uploadBtn,
-.submitBtn,
-.searchLinkBtn,
-.cancelBtn {
-  border: none;
-  border-radius: 14px;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.uploadBtn,
-.submitBtn,
-.searchLinkBtn {
-  background: linear-gradient(180deg, #123449 0%, #0f2b4a 100%);
-  color: #fff;
-}
-
-.uploadBtn {
-  padding: 12px 18px;
-}
-
-.submitBtn {
-  min-width: 180px;
-  height: 54px;
-  padding: 0 24px;
-}
-
-.searchLinkBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 50px;
-  padding: 0 20px;
-}
-
-.cancelBtn {
-  min-width: 140px;
-  height: 54px;
-  padding: 0 22px;
-  background: #eef3fb;
-  color: #31415f;
-}
-
-.uploadBtn:hover,
-.submitBtn:hover,
-.searchLinkBtn:hover {
-  filter: brightness(0.97);
-}
-
-.cancelBtn:hover {
-  background: #e4ebf6;
-}
-
-.formActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.sidePanel {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.tipCard,
-.previewCard {
-  padding: 24px;
-}
-
-.tipCard ul {
-  margin: 10px 0 0 18px;
-  padding: 0;
-  color: #53627d;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.searchMini {
-  height: 52px;
-  border: 1px solid #dbe3f0;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 16px;
-  margin: 18px 0 16px;
-}
-
-.searchMini input {
-  border: none;
-  outline: none;
-  width: 100%;
-  background: transparent;
-  font-size: 15px;
-  color: #31415f;
-  font-family: var(--font-sans);
-}
-.hiddenFileInput {
-  display: none;
-}
-
-.fileName {
-  margin-bottom: 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f4f8a;
 }
 
 .successMessage {
@@ -485,6 +318,74 @@
   border-radius: 14px;
   font-size: 15px;
   font-weight: 600;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelBtn,
+.saveBtn {
+  min-width: 150px;
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  background: #eef3fb;
+  color: #31415f;
+}
+
+.saveBtn {
+  background: linear-gradient(180deg, #123449 0%, #0f2b4a 100%);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .studentSidebar {
+    display: none;
+  }
+
+  .topLinks {
+    display: none;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .studentTopbar {
+    padding: 0 18px;
+  }
+
+  .settingsSection {
+    margin: 18px;
+  }
+
+  .pageTitleWrap h1 {
+    font-size: 30px;
+  }
+
+  .settingsCard {
+    padding: 20px;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .cancelBtn,
+  .saveBtn {
+    width: 100%;
+  }
 }
 .profileMenuWrap {
   position: relative;
@@ -534,65 +435,4 @@
 
 .profileDropdownItem:hover {
   background: #eef3fb;
-}
-@media (max-width: 1200px) {
-  .formSection {
-    grid-template-columns: 1fr;
-  }
-
-  .sidePanel {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .studentSidebar {
-    display: none;
-  }
-
-  .topLinks {
-    display: none;
-  }
-
-  .formGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .studentTopbar {
-    padding: 0 18px;
-  }
-
-  .heroBanner,
-  .formSection {
-    margin-left: 18px;
-    margin-right: 18px;
-  }
-
-  .pageTitleWrap h1 {
-    font-size: 30px;
-  }
-
-  .heroBanner h2,
-  .cardHeader h3,
-  .tipCard h3,
-  .previewCard h3 {
-    font-size: 24px;
-  }
-
-  .formCard,
-  .tipCard,
-  .previewCard {
-    padding: 18px;
-  }
-
-  .formActions {
-    flex-direction: column;
-  }
-
-  .submitBtn,
-  .cancelBtn {
-    width: 100%;
-  }
 }

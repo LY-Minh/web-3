@@ -205,286 +205,293 @@
 
 .heroBanner h2 {
   font-family: Georgia, "Times New Roman", serif;
-  text-align: center;
   font-size: 28px;
   color: #26344d;
   margin-bottom: 10px;
-  font-weight: 400;
-}
-
-.heroBanner h2 strong {
-  font-weight: 800;
-  color: #1e2d47;
 }
 
 .heroBanner p {
-  text-align: center;
   color: #72819c;
-  font-size: 15px;
-}
-
-.formSection {
-  margin: 0 30px 30px;
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr);
-  gap: 22px;
-}
-
-.formCard,
-.tipCard,
-.previewCard {
-  background: #fff;
-  border: 1px solid #dfe7f2;
-  border-radius: 24px;
-  box-shadow: 0 8px 24px rgba(18, 36, 73, 0.04);
-}
-
-.formCard {
-  padding: 28px;
-}
-
-.cardHeader {
+  font-size: 16px;
   margin-bottom: 24px;
 }
 
-.cardHeader h3,
-.tipCard h3,
-.previewCard h3 {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 28px;
-  font-weight: bold;
-  color: #22314d;
-  margin-bottom: 6px;
-}
-
-.cardHeader p,
-.previewCard p {
-  color: #7b889f;
-  font-size: 15px;
-}
-
-.reportForm {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.formGrid {
+.filtersRow {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 260px));
+  gap: 16px;
 }
 
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.formGroup label {
-  font-size: 15px;
-  font-weight: 700;
-  color: #2e3d59;
-}
-
-.formGroup input,
-.formGroup textarea,
-.selectWrap select {
+.filterSelect {
+  position: relative;
   width: 100%;
-  border: 1px solid #dbe3f0;
+}
+
+.filterSelect select {
+  width: 100%;
+  height: 58px;
+  appearance: none;
+  border: 1px solid #d7dfeb;
   border-radius: 18px;
-  background: #fff;
-  padding: 0 18px;
+  background: #ffffff;
+  padding: 0 48px 0 18px;
   font-size: 16px;
-  color: #31415f;
+  font-weight: 600;
+  color: #2f3f5c;
   outline: none;
   font-family: var(--font-sans);
-  box-shadow: 0 2px 10px rgba(15, 35, 70, 0.03);
 }
 
-.formGroup input,
-.selectWrap select {
-  height: 60px;
-}
-
-.formGroup textarea {
-  padding: 18px;
-  resize: vertical;
-  min-height: 150px;
-}
-
-.formGroup input:focus,
-.formGroup textarea:focus,
-.selectWrap select:focus {
-  border-color: #3b6cff;
-  box-shadow: 0 0 0 4px rgba(59, 108, 255, 0.12);
-}
-
-.selectWrap {
-  position: relative;
-}
-
-.selectWrap select {
-  appearance: none;
-  padding-right: 48px;
-}
-
-.selectWrap svg {
+.filterSelect svg {
   position: absolute;
-  right: 18px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: #8391aa;
   pointer-events: none;
 }
 
-.uploadBox {
-  border: 1.5px dashed #c8d5ea;
-  background: #f9fbff;
+.tabsSection {
+  margin: 0 30px 14px;
+}
+
+.tabs {
+  display: inline-flex;
+  background: transparent;
+  border-bottom: 1px solid #dde4ef;
+}
+
+.tabBtn {
+  height: 46px;
+  padding: 0 28px;
+  border: 1px solid #dde4ef;
+  border-bottom: none;
+  background: #f8fbff;
+  color: #5f6d86;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.tabBtn:first-child {
+  border-top-left-radius: 14px;
+}
+
+.tabBtn:last-child {
+  border-top-right-radius: 14px;
+}
+
+.tabActive {
+  background: #dfe7f6;
+  color: #253552;
+  font-weight: 700;
+}
+
+.claimsSection {
+  margin: 0 30px 30px;
+}
+
+.claimsSection h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  color: #26344d;
+  margin-bottom: 18px;
+}
+
+.claimsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.claimCard {
+  background: #fff;
+  border: 1px solid #dfe7f2;
   border-radius: 22px;
-  padding: 32px 24px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(18, 36, 73, 0.04);
+}
+
+.claimTop {
+  display: flex;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid #edf2f8;
+}
+
+.claimImageWrap {
+  width: 118px;
+  height: 118px;
+  background: #f8fafc;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.claimImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.claimMainInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.claimMainInfo h4 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  color: #24324a;
+  margin: 2px 0 10px;
+}
+
+.claimedDate {
+  color: #51617d;
+  margin-bottom: 14px;
+  font-size: 15px;
+}
+
+.claimId {
+  margin-top: 14px;
+  font-size: 15px;
+  color: #24324a;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.statusReview {
+  background: #f7e8b8;
+  color: #8c6700;
+}
+
+.statusApproved {
+  background: #d7f2e2;
+  color: #18794e;
+}
+
+.statusRejected {
+  background: #f7d7dc;
+  color: #b42318;
+}
+
+.statusCollected {
+  background: #dce9ff;
+  color: #1d4ed8;
+}
+
+.claimBody {
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  gap: 10px;
+  color: #495974;
+  font-size: 15px;
 }
 
-.uploadBox svg {
-  color: #1b56d8;
-  margin-bottom: 12px;
+.claimBody strong {
+  color: #24324a;
 }
 
-.uploadBox h4 {
-  font-size: 19px;
-  color: #23314d;
-  margin-bottom: 6px;
+.claimActions {
+  display: flex;
+  gap: 10px;
+  padding: 0 18px 18px;
+  flex-wrap: wrap;
 }
 
-.uploadBox p {
-  color: #7f8ca5;
-  margin-bottom: 16px;
-}
-
-.uploadBtn,
-.submitBtn,
-.searchLinkBtn,
-.cancelBtn {
-  border: none;
+.primaryBtn,
+.primaryOutlineBtn,
+.secondaryBtn,
+.secondaryDangerBtn {
+  height: 46px;
   border-radius: 14px;
+  border: none;
+  padding: 0 20px;
   font-weight: 700;
-  text-decoration: none;
+  font-size: 15px;
   cursor: pointer;
-  transition: 0.2s ease;
 }
 
-.uploadBtn,
-.submitBtn,
-.searchLinkBtn {
+.primaryBtn,
+.primaryOutlineBtn {
   background: linear-gradient(180deg, #123449 0%, #0f2b4a 100%);
   color: #fff;
 }
 
-.uploadBtn {
-  padding: 12px 18px;
-}
-
-.submitBtn {
-  min-width: 180px;
-  height: 54px;
-  padding: 0 24px;
-}
-
-.searchLinkBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 50px;
-  padding: 0 20px;
-}
-
-.cancelBtn {
-  min-width: 140px;
-  height: 54px;
-  padding: 0 22px;
+.secondaryBtn {
   background: #eef3fb;
   color: #31415f;
 }
 
-.uploadBtn:hover,
-.submitBtn:hover,
-.searchLinkBtn:hover {
-  filter: brightness(0.97);
+.secondaryDangerBtn {
+  background: #fff0f1;
+  color: #c23442;
+  border: 1px solid #f2c8cd;
 }
 
-.cancelBtn:hover {
-  background: #e4ebf6;
+@media (max-width: 1200px) {
+  .claimsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.formActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+@media (max-width: 900px) {
+  .studentSidebar {
+    display: none;
+  }
+
+  .topLinks {
+    display: none;
+  }
+
+  .claimsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .filtersRow {
+    grid-template-columns: 1fr;
+  }
 }
 
-.sidePanel {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
+@media (max-width: 640px) {
+  .studentTopbar {
+    padding: 0 18px;
+  }
 
-.tipCard,
-.previewCard {
-  padding: 24px;
-}
+  .heroBanner,
+  .tabsSection,
+  .claimsSection {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
 
-.tipCard ul {
-  margin: 10px 0 0 18px;
-  padding: 0;
-  color: #53627d;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+  .pageTitleWrap h1 {
+    font-size: 30px;
+  }
 
-.searchMini {
-  height: 52px;
-  border: 1px solid #dbe3f0;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 16px;
-  margin: 18px 0 16px;
-}
+  .heroBanner h2,
+  .claimsSection h3 {
+    font-size: 24px;
+  }
 
-.searchMini input {
-  border: none;
-  outline: none;
-  width: 100%;
-  background: transparent;
-  font-size: 15px;
-  color: #31415f;
-  font-family: var(--font-sans);
-}
-.hiddenFileInput {
-  display: none;
-}
+  .claimTop {
+    flex-direction: column;
+  }
 
-.fileName {
-  margin-bottom: 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f4f8a;
-}
-
-.successMessage {
-  background: #eaf8ef;
-  border: 1px solid #b8e3c2;
-  color: #1f7a3f;
-  padding: 14px 16px;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 600;
+  .claimImageWrap {
+    width: 100%;
+    height: 220px;
+  }
 }
 .profileMenuWrap {
   position: relative;
@@ -534,65 +541,4 @@
 
 .profileDropdownItem:hover {
   background: #eef3fb;
-}
-@media (max-width: 1200px) {
-  .formSection {
-    grid-template-columns: 1fr;
-  }
-
-  .sidePanel {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .studentSidebar {
-    display: none;
-  }
-
-  .topLinks {
-    display: none;
-  }
-
-  .formGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .studentTopbar {
-    padding: 0 18px;
-  }
-
-  .heroBanner,
-  .formSection {
-    margin-left: 18px;
-    margin-right: 18px;
-  }
-
-  .pageTitleWrap h1 {
-    font-size: 30px;
-  }
-
-  .heroBanner h2,
-  .cardHeader h3,
-  .tipCard h3,
-  .previewCard h3 {
-    font-size: 24px;
-  }
-
-  .formCard,
-  .tipCard,
-  .previewCard {
-    padding: 18px;
-  }
-
-  .formActions {
-    flex-direction: column;
-  }
-
-  .submitBtn,
-  .cancelBtn {
-    width: 100%;
-  }
 }

@@ -1,4 +1,5 @@
 "use client";
+import StudentProfileMenu from "@/components/student-profile-menu";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -107,7 +108,7 @@ export default function ReportItemPage() {
             </Link>
 
             <Link
-              href="/student/report-item"
+              href="/student/report_items"
               className={`${styles.navItem} ${styles.active}`}
             >
               <FileText size={20} />
@@ -122,9 +123,7 @@ export default function ReportItemPage() {
         </div>
 
         <div className={styles.sidebarBottom}>
-          <div className={styles.profileMini}>N</div>
-
-          <a href="#" className={styles.logoutBtn}>
+          <a href="/" className={styles.logoutBtn}>
             <LogOut size={18} />
             <span>Log Out</span>
           </a>
@@ -145,7 +144,7 @@ export default function ReportItemPage() {
                 Home
               </Link>
               <Link
-                href="/student/report-item"
+                href="/student/report_items"
                 className={`${styles.topLink} ${styles.topLinkActive}`}
               >
                 Report Item
@@ -155,15 +154,15 @@ export default function ReportItemPage() {
               </Link>
             </nav>
 
-            <div className={styles.userBox}>
-              <img
-                src="https://i.pravatar.cc/100?img=12"
-                alt="User"
-                className={styles.userAvatar}
-              />
-              <span>John Doe</span>
-              <ChevronDown size={18} />
-            </div>
+            <StudentProfileMenu
+              classNames={{
+                profileMenuWrap: styles.profileMenuWrap,
+                userBoxButton: styles.userBoxButton,
+                userAvatar: styles.userAvatar,
+                profileDropdown: styles.profileDropdown,
+                profileDropdownItem: styles.profileDropdownItem,
+              }}
+            />
           </div>
         </header>
 
