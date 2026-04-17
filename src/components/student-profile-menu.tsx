@@ -20,6 +20,8 @@ export default function StudentProfileMenu({ classNames }: Props) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
+  const displayName = profile.fullName?.trim() || "Student";
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -41,12 +43,7 @@ export default function StudentProfileMenu({ classNames }: Props) {
         className={classNames.userBoxButton}
         onClick={() => setShowProfileMenu((prev) => !prev)}
       >
-        <img
-          src={profile.profileImage}
-          alt={profile.fullName}
-          className={classNames.userAvatar}
-        />
-        <span>{profile.fullName}</span>
+        <span>{displayName}</span>
         <ChevronDown size={18} />
       </button>
 
@@ -75,7 +72,7 @@ export default function StudentProfileMenu({ classNames }: Props) {
             className={classNames.profileDropdownItem}
             onClick={() => setShowProfileMenu(false)}
           >
-            <FolderKanban size={16} />
+            <LogOut size={16} />
             <span>Log out</span>
           </Link>
         </div>

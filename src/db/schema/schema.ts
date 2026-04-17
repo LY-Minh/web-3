@@ -1,5 +1,5 @@
 
-import { pgTable, text, timestamp, uuid, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, pgEnum, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
 
 // enums
@@ -30,7 +30,12 @@ export const claimsTable = pgTable("claims", {
     reviewedById: text("reviewed_by_id").references(() => user.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+    claimsItemStudentUniqueIdx: uniqueIndex("claims_item_student_unique_idx").on(
+        table.itemId,
+        table.studentId
+    ),
+}));
 
 export const filesTable = pgTable("files", {
     id: uuid("id").defaultRandom().primaryKey(),

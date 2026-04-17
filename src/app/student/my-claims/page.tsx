@@ -2,7 +2,7 @@
 
 import StudentProfileMenu from "@/components/student-profile-menu";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -47,7 +47,6 @@ type ItemRecord = {
 
 type ClaimItem = {
   id: string;
-  itemId: string;
   itemName: string;
   itemDescription: string;
   itemCategory: ItemCategory;
@@ -56,8 +55,6 @@ type ClaimItem = {
   proofDescription: string;
   status: ClaimStatus;
 };
-
-const CLAIM_IDS_STORAGE_KEY = "student_claim_ids";
 
 const CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
   pending: "Under Review",
@@ -80,31 +77,6 @@ const CATEGORY_LABELS: Record<ItemCategory, string> = {
   other: "Other",
 };
 
-const parseStoredClaimIds = () => {
-  if (typeof window === "undefined") {
-    return [] as string[];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(CLAIM_IDS_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as string[]) : [];
-    return parsed.filter((id) => typeof id === "string" && id.length > 0);
-  } catch {
-    return [] as string[];
-  }
-};
-
-const persistClaimIds = (claimIds: string[]) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(
-    CLAIM_IDS_STORAGE_KEY,
-    JSON.stringify(claimIds.slice(0, 50))
-  );
-};
-
 const formatDate = (value: string) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -124,147 +96,91 @@ const getStatusClassName = (status: ClaimStatus) => {
   return styles.statusReview;
 };
 
-const fetchClaimView = async (claimId: string): Promise<ClaimItem> => {
-  const claimResponse = await fetch(`/api/student/claims/${claimId}`, {
-    method: "GET",
-    credentials: "include",
-  });
-
-  const claimData = await claimResponse.json();
-  if (!claimResponse.ok) {
-    const message =
-      typeof claimData?.error === "string"
-        ? claimData.error
-        : "Failed to fetch claim.";
-    throw new Error(message);
-  }
-
-  const claim = claimData as ClaimRecord;
-
-  let item: ItemRecord | null = null;
-  const itemResponse = await fetch(`/api/student/items/${claim.itemId}`, {
-    method: "GET",
-    credentials: "include",
-  });
-  if (itemResponse.ok) {
-    item = (await itemResponse.json()) as ItemRecord;
-  }
-
-  return {
-    id: claim.id,
-    itemId: claim.itemId,
-    itemName: item?.name ?? `Item ${claim.itemId.slice(0, 8)}`,
-    itemDescription: item?.description ?? "No item description available.",
-    itemCategory: item?.category ?? "other",
-    itemStatus: item?.status ?? "claimed",
-    submittedDate: claim.createdAt,
-    proofDescription: claim.proofDescription,
-    status: claim.status,
-  };
-};
-
 export default function MyClaimsPage() {
   const [claims, setClaims] = useState<ClaimItem[]>([]);
   const [isLoadingClaims, setIsLoadingClaims] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [claimLookupId, setClaimLookupId] = useState("");
-  const [lookupError, setLookupError] = useState<string | null>(null);
-  const [isLookingUpClaim, setIsLookingUpClaim] = useState(false);
-
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
-  const upsertClaim = (incoming: ClaimItem) => {
-    setClaims((prev) => {
-      const next = [incoming, ...prev.filter((claim) => claim.id !== incoming.id)];
-      persistClaimIds(next.map((claim) => claim.id));
-      return next;
-    });
-  };
+  const loadClaims = useCallback(async () => {
+    setIsLoadingClaims(true);
+    setLoadError(null);
 
-  useEffect(() => {
-    let isMounted = true;
+    try {
+      const claimsResponse = await fetch("/api/student/claims", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
 
-    const loadStoredClaims = async () => {
-      setIsLoadingClaims(true);
-      setLoadError(null);
-
-      const ids = parseStoredClaimIds();
-      if (ids.length === 0) {
-        if (isMounted) {
-          setClaims([]);
-          setIsLoadingClaims(false);
-        }
-        return;
+      const claimsData = await claimsResponse.json();
+      if (!claimsResponse.ok) {
+        const message =
+          typeof claimsData?.error === "string"
+            ? claimsData.error
+            : "Failed to load claims.";
+        throw new Error(message);
       }
 
-      const results = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            return await fetchClaimView(id);
-          } catch {
-            return null;
+      if (!Array.isArray(claimsData)) {
+        throw new Error("Unexpected claims response format.");
+      }
+
+      const claimRecords = claimsData as ClaimRecord[];
+      const enrichedClaims = await Promise.all(
+        claimRecords.map(async (claim) => {
+          let item: ItemRecord | null = null;
+
+          const itemResponse = await fetch(`/api/student/items/${claim.itemId}`, {
+            method: "GET",
+            credentials: "include",
+          });
+
+          if (itemResponse.ok) {
+            item = (await itemResponse.json()) as ItemRecord;
           }
+
+          return {
+            id: claim.id,
+            itemName: item?.name ?? "Unknown item",
+            itemDescription: item?.description ?? "No item description available.",
+            itemCategory: item?.category ?? "other",
+            itemStatus: item?.status ?? "claimed",
+            submittedDate: claim.createdAt,
+            proofDescription: claim.proofDescription,
+            status: claim.status,
+          } as ClaimItem;
         })
       );
 
-      if (!isMounted) {
-        return;
-      }
-
-      const validClaims = results.filter((claim): claim is ClaimItem => claim !== null);
-      setClaims(validClaims);
-      persistClaimIds(validClaims.map((claim) => claim.id));
-
-      if (validClaims.length === 0) {
-        setLoadError("No claim records were found for stored claim IDs.");
-      }
-
+      setClaims(enrichedClaims);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load claims.";
+      setLoadError(message);
+      setClaims([]);
+    } finally {
       setIsLoadingClaims(false);
-    };
-
-    void loadStoredClaims();
-
-    return () => {
-      isMounted = false;
-    };
+    }
   }, []);
 
-  const handleLookupSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  useEffect(() => {
+    void loadClaims();
 
-    const trimmedId = claimLookupId.trim();
-    if (!trimmedId) {
-      setLookupError("Please enter a claim ID.");
-      return;
-    }
+    const handleClaimsChanged = () => {
+      void loadClaims();
+    };
 
-    setLookupError(null);
-    setIsLookingUpClaim(true);
+    window.addEventListener("claims:changed", handleClaimsChanged);
+    return () => {
+      window.removeEventListener("claims:changed", handleClaimsChanged);
+    };
+  }, [loadClaims]);
 
-    try {
-      const claim = await fetchClaimView(trimmedId);
-      upsertClaim(claim);
-      setClaimLookupId("");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to load claim by ID.";
-      setLookupError(message);
-    } finally {
-      setIsLookingUpClaim(false);
-    }
-  };
-
-  const handleRefreshClaim = async (claimId: string) => {
-    try {
-      const refreshed = await fetchClaimView(claimId);
-      upsertClaim(refreshed);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to refresh claim.";
-      setLookupError(message);
-    }
+  const handleRefreshClaims = async () => {
+    await loadClaims();
   };
 
   const visibleClaims = useMemo(() => {
@@ -316,10 +232,10 @@ export default function MyClaimsPage() {
         </div>
 
         <div className={styles.sidebarBottom}>
-          <a href="/" className={styles.logoutBtn}>
+          <Link href="/" className={styles.logoutBtn}>
             <LogOut size={18} />
             <span>Log Out</span>
-          </a>
+          </Link>
         </div>
       </aside>
 
@@ -388,23 +304,7 @@ export default function MyClaimsPage() {
             </div>
           </div>
 
-          <form className={styles.lookupForm} onSubmit={handleLookupSubmit}>
-            <input
-              className={styles.lookupInput}
-              value={claimLookupId}
-              onChange={(e) => setClaimLookupId(e.target.value)}
-              placeholder="Enter claim ID to load (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
-            />
-            <button
-              type="submit"
-              className={styles.lookupBtn}
-              disabled={isLookingUpClaim}
-            >
-              {isLookingUpClaim ? "Loading..." : "Load Claim"}
-            </button>
-          </form>
-
-          {lookupError && <p className={styles.stateMessage}>{lookupError}</p>}
+          {loadError && <p className={styles.stateMessage}>{loadError}</p>}
         </section>
 
         <section className={styles.claimsSection}>
@@ -416,8 +316,7 @@ export default function MyClaimsPage() {
             <p className={styles.emptyState}>{loadError}</p>
           ) : visibleClaims.length === 0 ? (
             <p className={styles.emptyState}>
-              No claims loaded yet. Submit a claim from Home, or load one by Claim
-              ID above.
+              No claims found yet. Submit a claim from Home and it will appear here.
             </p>
           ) : (
             <div className={styles.claimsGrid}>
@@ -443,15 +342,10 @@ export default function MyClaimsPage() {
                       >
                         {CLAIM_STATUS_LABELS[claim.status]}
                       </span>
-
-                      <p className={styles.claimId}>ID: {claim.id}</p>
                     </div>
                   </div>
 
                   <div className={styles.claimBody}>
-                    <p>
-                      <strong>Item ID:</strong> {claim.itemId}
-                    </p>
                     <p>
                       <strong>Category:</strong> {CATEGORY_LABELS[claim.itemCategory]}
                     </p>
@@ -470,7 +364,7 @@ export default function MyClaimsPage() {
                     <button
                       className={styles.primaryBtn}
                       type="button"
-                      onClick={() => handleRefreshClaim(claim.id)}
+                      onClick={handleRefreshClaims}
                     >
                       Refresh
                     </button>

@@ -1,6 +1,6 @@
 import { claimsTable, filesTable, itemsTable } from "@/db/schema/schema";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 type CreateClaimParams = {
     itemId: string;
@@ -39,6 +39,21 @@ class ClaimRepository {
 
             if (item.status === "approved_claim") {
                 throw new Error("ITEM_NOT_CLAIMABLE");
+            }
+
+            const [existingClaim] = await tx
+                .select({ id: claimsTable.id })
+                .from(claimsTable)
+                .where(
+                    and(
+                        eq(claimsTable.itemId, claim.itemId),
+                        eq(claimsTable.studentId, claim.studentId)
+                    )
+                )
+                .limit(1);
+
+            if (existingClaim) {
+                throw new Error("DUPLICATE_CLAIM");
             }
 
             const [createdClaim] = await tx
@@ -102,6 +117,21 @@ class ClaimRepository {
             .select()
             .from(claimsTable)
             .where(eq(claimsTable.itemId, itemId));
+    }
+
+    async hasClaimForItemByStudent(itemId: string, studentId: string) {
+        const [claim] = await db
+            .select({ id: claimsTable.id })
+            .from(claimsTable)
+            .where(
+                and(
+                    eq(claimsTable.itemId, itemId),
+                    eq(claimsTable.studentId, studentId)
+                )
+            )
+            .limit(1);
+
+        return Boolean(claim);
     }
 
     async reviewClaim(

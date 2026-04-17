@@ -2,48 +2,32 @@
 import StudentProfileMenu from "@/components/student-profile-menu";
 import { useStudentProfile } from "@/components/student-profile-context";
 import Link from "next/link";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
-import {
-  ChevronDown,
   ChevronRight,
   FolderKanban,
   Home,
   LogOut,
   Settings,
-  Camera,
 } from "lucide-react";
 import styles from "./account_setting.module.css";
 
 export default function AccountSettingsPage() {
   const { profile, updateProfile } = useStudentProfile();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [profileImage, setProfileImage] = useState(
-    "https://i.pravatar.cc/200?img=12"
-  );
+  const [formData, setFormData] = useState<{
+    fullName: string;
+    email: string;
+    phone: string;
+    bio: string;
+  } | null>(null);
 
-  const [formData, setFormData] = useState({
+  const resolvedFormData = formData ?? {
     fullName: profile.fullName,
     email: profile.email,
     phone: profile.phone,
     bio: profile.bio,
-    profileImage: profile.profileImage,
-  });
-  useEffect(() => {
-    setFormData({
-      fullName: profile.fullName,
-      email: profile.email,
-      phone: profile.phone,
-      bio: profile.bio,
-      profileImage: profile.profileImage,
-    });
-  }, [profile]);
+  };
 
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -52,42 +36,24 @@ export default function AccountSettingsPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
-      ...prev,
+      ...(prev ?? {
+        fullName: profile.fullName,
+        email: profile.email,
+        phone: profile.phone,
+        bio: profile.bio,
+      }),
       [name]: value,
     }));
   };
 
-  const handleChooseImage = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onloadend = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        setFormData((prev) => ({
-          ...prev,
-          profileImage: result,
-        }));
-      }
-    };
-
-    reader.readAsDataURL(file);
-  };
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     updateProfile({
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      bio: formData.bio,
-      profileImage: formData.profileImage,
+      fullName: resolvedFormData.fullName,
+      email: resolvedFormData.email,
+      phone: resolvedFormData.phone,
+      bio: resolvedFormData.bio,
     });
 
     setSuccessMessage("Profile updated successfully.");
@@ -123,12 +89,10 @@ export default function AccountSettingsPage() {
         </div>
 
         <div className={styles.sidebarBottom}>
-          <div className={styles.profileMini}>N</div>
-
-          <a href="/" className={styles.logoutBtn}>
+          <Link href="/" className={styles.logoutBtn}>
             <LogOut size={18} />
             <span>Log Out</span>
-          </a>
+          </Link>
         </div>
       </aside>
 
@@ -166,37 +130,10 @@ export default function AccountSettingsPage() {
           <div className={styles.settingsCard}>
             <div className={styles.cardHeader}>
               <h2>Profile Information</h2>
-              <p>Update your photo and personal information.</p>
+              <p>Update your personal information.</p>
             </div>
 
             <form className={styles.settingsForm} onSubmit={handleSubmit}>
-              <div className={styles.profileImageSection}>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className={styles.hiddenFileInput}
-                />
-
-                <div className={styles.profileImageWrap}>
-                  <img
-                    src={formData.profileImage}
-                    alt="Profile"
-                    className={styles.profileImageLarge}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  className={styles.changePhotoBtn}
-                  onClick={handleChooseImage}
-                >
-                  <Camera size={18} />
-                  <span>Change Profile Photo</span>
-                </button>
-              </div>
-
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
                   <label htmlFor="fullName">Full Name</label>
@@ -204,7 +141,7 @@ export default function AccountSettingsPage() {
                     id="fullName"
                     name="fullName"
                     type="text"
-                    value={formData.fullName}
+                    value={resolvedFormData.fullName}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -215,7 +152,7 @@ export default function AccountSettingsPage() {
                     id="email"
                     name="email"
                     type="email"
-                    value={formData.email}
+                    value={resolvedFormData.email}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -226,7 +163,7 @@ export default function AccountSettingsPage() {
                     id="phone"
                     name="phone"
                     type="text"
-                    value={formData.phone}
+                    value={resolvedFormData.phone}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -238,7 +175,7 @@ export default function AccountSettingsPage() {
                   id="bio"
                   name="bio"
                   rows={5}
-                  value={formData.bio}
+                  value={resolvedFormData.bio}
                   onChange={handleInputChange}
                 />
               </div>

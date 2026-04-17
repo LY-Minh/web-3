@@ -3,6 +3,7 @@
 import StudentProfileMenu from "@/components/student-profile-menu";
 import Link from "next/link";
 import {
+  useCallback,
   useMemo,
   useState,
   useEffect,
@@ -39,8 +40,6 @@ type Item = {
   updatedAt: string;
 };
 
-const CLAIM_IDS_STORAGE_KEY = "student_claim_ids";
-
 const CATEGORY_LABELS: Record<ItemCategory, string> = {
   electronics: "Electronics",
   clothing: "Clothing",
@@ -65,24 +64,6 @@ const formatDate = (value: string) => {
   return parsed.toLocaleDateString();
 };
 
-const storeClaimId = (claimId: string) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(CLAIM_IDS_STORAGE_KEY);
-    const current = raw ? (JSON.parse(raw) as string[]) : [];
-    const unique = [claimId, ...current.filter((id) => id !== claimId)];
-    window.localStorage.setItem(
-      CLAIM_IDS_STORAGE_KEY,
-      JSON.stringify(unique.slice(0, 50))
-    );
-  } catch {
-    window.localStorage.setItem(CLAIM_IDS_STORAGE_KEY, JSON.stringify([claimId]));
-  }
-};
-
 export default function StudentPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
@@ -103,59 +84,43 @@ export default function StudentPage() {
   const [detailItem, setDetailItem] = useState<Item | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadItems = useCallback(async () => {
+    setIsLoadingItems(true);
+    setItemsError(null);
 
-    const loadItems = async () => {
-      setIsLoadingItems(true);
-      setItemsError(null);
+    try {
+      const response = await fetch("/api/student/items", {
+        method: "GET",
+        credentials: "include",
+      });
 
-      try {
-        const response = await fetch("/api/student/items", {
-          method: "GET",
-          credentials: "include",
-        });
+      const data = await response.json();
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          const message =
-            typeof data?.error === "string"
-              ? data.error
-              : "Failed to load items.";
-          throw new Error(message);
-        }
-
-        if (!Array.isArray(data)) {
-          throw new Error("Unexpected response from items API.");
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        setItems(data as Item[]);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
+      if (!response.ok) {
         const message =
-          error instanceof Error ? error.message : "Failed to load items.";
-        setItemsError(message);
-      } finally {
-        if (isMounted) {
-          setIsLoadingItems(false);
-        }
+          typeof data?.error === "string"
+            ? data.error
+            : "Failed to load items.";
+        throw new Error(message);
       }
-    };
 
-    void loadItems();
+      if (!Array.isArray(data)) {
+        throw new Error("Unexpected response from items API.");
+      }
 
-    return () => {
-      isMounted = false;
-    };
+      setItems(data as Item[]);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load items.";
+      setItemsError(message);
+    } finally {
+      setIsLoadingItems(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadItems();
+  }, [loadItems]);
 
   const openDetailModal = (item: Item) => {
     setDetailItem(item);
@@ -255,15 +220,11 @@ export default function StudentPage() {
         return;
       }
 
-      const claimId = typeof data?.id === "string" ? data.id : null;
-      if (claimId) {
-        storeClaimId(claimId);
-      }
+      await loadItems();
+      window.dispatchEvent(new Event("claims:changed"));
 
       setClaimSuccess(
-        claimId
-          ? `Claim submitted successfully. Claim ID: ${claimId}`
-          : `Your claim for "${selectedItem.name}" has been submitted successfully.`
+        `Your claim for "${selectedItem.name}" has been submitted successfully.`
       );
 
       setTimeout(() => {

@@ -17,6 +17,10 @@ type ReviewClaimInput = {
 class ClaimService {
     constructor(private repo: typeof claimRepository) {}
 
+    async hasExistingClaim(itemId: string, studentId: string) {
+        return this.repo.hasClaimForItemByStudent(itemId, studentId);
+    }
+
     async fileClaim(input: CreateClaimInput) {
         const uploadedKeys = await uploadMultipleFiles(input.files, "claims", false);
 

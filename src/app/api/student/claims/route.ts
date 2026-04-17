@@ -3,13 +3,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth/auth";
 import { claimService } from "@/server/claims/claimService";
 
-const uuidLikeRegex =
-    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
 const FileClaim = z.object({
-    itemId: z.string().regex(uuidLikeRegex, "Invalid UUID format"),
-    proofDescription: z.string().min(10, "Proof description must be at least 10 characters"),
+    itemId: z.uuid("Invalid UUID format"),
+    proofDescription: z.string().trim().min(10, "Proof description must be at least 10 characters"),
 });
+
+const allowedClaimFormFields = new Set(["itemId", "proofDescription", "files"]);
+
+export const GET = async (req: NextRequest) => {
+    try {
+        const session = await auth.api.getSession({
+            headers: req.headers,
+        });
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        if (session.user.role !== "student") {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        const claims = await claimService.getClaimsByStudentId(session.user.id);
+        return NextResponse.json(claims, { status: 200 });
+    } catch (error) {
+        console.error("Error fetching student claims:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
 
 export const POST = async (req: NextRequest) => {
     try {
@@ -26,23 +47,21 @@ export const POST = async (req: NextRequest) => {
         }
 
         const formData = await req.formData();
+        for (const key of formData.keys()) {
+            if (!allowedClaimFormFields.has(key)) {
+                return NextResponse.json(
+                    { error: `Unsupported field: ${key}` },
+                    { status: 400 }
+                );
+            }
+        }
+
         const itemIdValue = formData.get("itemId");
         const proofDescriptionValue = formData.get("proofDescription");
-        const reasonValue = formData.get("reason");
-        const proofValue = formData.get("proof");
-
-        const fallbackProofDescription = [reasonValue, proofValue]
-            .filter((value): value is string => typeof value === "string")
-            .map((value) => value.trim())
-            .filter((value) => value.length > 0)
-            .join("\n\n");
 
         const normalizedBody = {
             itemId: typeof itemIdValue === "string" ? itemIdValue.trim() : "",
-            proofDescription:
-                typeof proofDescriptionValue === "string" && proofDescriptionValue.trim().length > 0
-                    ? proofDescriptionValue.trim()
-                    : fallbackProofDescription,
+            proofDescription: typeof proofDescriptionValue === "string" ? proofDescriptionValue : "",
         };
 
         const parsed = FileClaim.safeParse(normalizedBody);
@@ -57,13 +76,25 @@ export const POST = async (req: NextRequest) => {
             );
         }
 
-        const files = [...formData.getAll("files"), ...formData.getAll("proofFiles")]
+        const files = formData.getAll("files")
             .filter((entry): entry is File => entry instanceof File && entry.size > 0);
 
         if (files.length === 0) {
             return NextResponse.json(
                 { error: "At least one proof file is required." },
                 { status: 400 }
+            );
+        }
+
+        const hasExistingClaim = await claimService.hasExistingClaim(
+            parsed.data.itemId,
+            session.user.id
+        );
+
+        if (hasExistingClaim) {
+            return NextResponse.json(
+                { error: "You have already filed a claim for this item." },
+                { status: 409 }
             );
         }
 
@@ -83,6 +114,13 @@ export const POST = async (req: NextRequest) => {
         if (error instanceof Error) {
             if (error.message === "ITEM_NOT_FOUND") {
                 return NextResponse.json({ error: "Item not found" }, { status: 404 });
+            }
+
+            if (error.message === "DUPLICATE_CLAIM") {
+                return NextResponse.json(
+                    { error: "You have already filed a claim for this item." },
+                    { status: 409 }
+                );
             }
 
             if (error.message === "ITEM_NOT_CLAIMABLE") {
