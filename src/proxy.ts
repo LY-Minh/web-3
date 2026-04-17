@@ -22,9 +22,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasSessionCookie =
-    request.cookies.has("better-auth.session_token") ||
-    request.cookies.has("__Secure-better-auth.session_token");
+  const hasSessionCookie = request.cookies.has("better-auth.session_token");
 
   if (!hasSessionCookie) {
     const response = NextResponse.redirect(new URL("/", request.url));
