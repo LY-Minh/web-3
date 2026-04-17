@@ -1,4 +1,4 @@
-import { claimsTable, itemsTable } from "@/db/schema/schema";
+import { claimsTable, filesTable, itemsTable } from "@/db/schema/schema";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 
@@ -8,14 +8,39 @@ type CreateClaimParams = {
     proofDescription: string;
 };
 
+type CreateClaimFileParams = {
+    fileName: string;
+    fileType: string | null;
+    fileUrl: string;
+    s3Key: string;
+    uploadedById: string;
+};
+
 type ClaimReviewParams = {
     status: "approved" | "rejected";
     adminId: string;
 };
 
 class ClaimRepository {
-    async createClaimWithStatusUpdate(claim: CreateClaimParams) {
+    async createClaimWithStatusUpdate(
+        claim: CreateClaimParams,
+        files: CreateClaimFileParams[] = []
+    ) {
         return db.transaction(async (tx) => {
+            const [item] = await tx
+                .select()
+                .from(itemsTable)
+                .where(eq(itemsTable.id, claim.itemId))
+                .limit(1);
+
+            if (!item) {
+                throw new Error("ITEM_NOT_FOUND");
+            }
+
+            if (item.status === "approved_claim") {
+                throw new Error("ITEM_NOT_CLAIMABLE");
+            }
+
             const [createdClaim] = await tx
                 .insert(claimsTable)
                 .values(claim)
@@ -25,14 +50,27 @@ class ClaimRepository {
                 return null;
             }
 
+            if (files.length > 0) {
+                await tx.insert(filesTable).values(
+                    files.map((file) => ({
+                        ...file,
+                        claimId: createdClaim.id,
+                        itemId: null,
+                        isActive: true,
+                    }))
+                );
+            }
+
             // Update item status to "claimed"
-            await tx
-                .update(itemsTable)
-                .set({
-                    status: "claimed",
-                    updatedAt: new Date(),
-                })
-                .where(eq(itemsTable.id, claim.itemId));
+            if (item.status === "lost") {
+                await tx
+                    .update(itemsTable)
+                    .set({
+                        status: "claimed",
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(itemsTable.id, claim.itemId));
+            }
 
             return createdClaim;
         });

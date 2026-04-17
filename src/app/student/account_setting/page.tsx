@@ -12,7 +12,6 @@ import {
 import {
   ChevronDown,
   ChevronRight,
-  FileText,
   FolderKanban,
   Home,
   LogOut,
@@ -116,11 +115,6 @@ export default function AccountSettingsPage() {
               <span>Home</span>
             </Link>
 
-            <Link href="/student/report_items" className={styles.navItem}>
-              <FileText size={20} />
-              <span>Report Item</span>
-            </Link>
-
             <Link href="/student/my-claims" className={styles.navItem}>
               <FolderKanban size={20} />
               <span>My Claims</span>
@@ -150,9 +144,6 @@ export default function AccountSettingsPage() {
             <nav className={styles.topLinks}>
               <Link href="/student" className={styles.topLink}>
                 Home
-              </Link>
-              <Link href="/student/report_items" className={styles.topLink}>
-                Report Item
               </Link>
               <Link href="/student/my-claims" className={styles.topLink}>
                 My Claims

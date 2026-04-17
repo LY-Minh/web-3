@@ -29,6 +29,7 @@ export async function POST(request: Request) {
         });
 
         const authBody = await authResponse.json();
+
         const response = NextResponse.json(
             {
                 success: authResponse.ok,

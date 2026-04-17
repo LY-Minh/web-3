@@ -649,6 +649,57 @@
   box-shadow: 0 0 0 4px rgba(59, 108, 255, 0.12);
 }
 
+.fileInputHidden {
+  display: none;
+}
+
+.fileUploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #dbe3f0;
+  background: #eef3fb;
+  color: #31415f;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fileUploadButton:hover {
+  background: #e4ebf6;
+}
+
+.fileUploadHint {
+  margin: 0;
+  font-size: 14px;
+  color: #5f6f8a;
+}
+
+.fileUploadList {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fileUploadItem {
+  border: 1px solid #dbe3f0;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #31415f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .claimSuccessMessage {
   background: #eaf8ef;
   border: 1px solid #b8e3c2;

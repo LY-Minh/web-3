@@ -251,6 +251,59 @@
   pointer-events: none;
 }
 
+.lookupForm {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lookupInput {
+  flex: 1;
+  min-width: 280px;
+  height: 56px;
+  border: 1px solid #d7dfeb;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #2f3f5c;
+}
+
+.lookupBtn {
+  height: 56px;
+  border: none;
+  border-radius: 14px;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, #123449 0%, #0f2b4a 100%);
+  color: #fff;
+}
+
+.lookupBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.stateMessage {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #b42318;
+  font-weight: 600;
+}
+
+.emptyState {
+  margin: 0;
+  padding: 22px;
+  border-radius: 14px;
+  border: 1px dashed #d7dfeb;
+  background: #ffffff;
+  color: #4f607c;
+  font-size: 15px;
+}
+
 .tabsSection {
   margin: 0 30px 14px;
 }
@@ -334,6 +387,18 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.claimImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #eaf0fa;
+  color: #31415f;
+  text-align: center;
+  font-weight: 700;
+  padding: 10px;
 }
 
 .claimMainInfo {

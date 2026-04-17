@@ -2,115 +2,290 @@
 
 import StudentProfileMenu from "@/components/student-profile-menu";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ChevronDown,
   ChevronRight,
-  FileText,
   FolderKanban,
   Home,
   LogOut,
 } from "lucide-react";
 import styles from "./my-claims.module.css";
 
-type ClaimStatus = "Under Review" | "Approved" | "Rejected" | "Collected";
+type ClaimStatus = "pending" | "approved" | "rejected";
 
-type ClaimItem = {
-  id: number;
-  itemName: string;
-  claimedDate: string;
-  reportedDate: string;
-  submittedDate: string;
-  location: string;
-  description: string;
-  claimId: string;
+type ItemStatus = "lost" | "claimed" | "approved_claim" | "picked_up";
+
+type ItemCategory =
+  | "electronics"
+  | "clothing"
+  | "accessories"
+  | "documents"
+  | "other";
+
+type ClaimRecord = {
+  id: string;
+  itemId: string;
+  studentId: string;
+  proofDescription: string;
   status: ClaimStatus;
-  image: string;
-  archived: boolean;
+  reviewedById: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
-const allClaims: ClaimItem[] = [
-  {
-    id: 1,
-    itemName: "Black Backpack",
-    claimedDate: "April 20, 2024",
-    reportedDate: "April 19, 2024",
-    submittedDate: "April 20, 2024",
-    location: "Library",
-    description: "Near the bookshelves around 6 PM.",
-    claimId: "LF-00187",
-    status: "Under Review",
-    image: "/image/student/black_backpack.jpeg",
-    archived: false,
-  },
-  {
-    id: 2,
-    itemName: "Silver iPhone",
-    claimedDate: "April 18, 2024",
-    reportedDate: "April 19, 2024",
-    submittedDate: "April 16, 2024",
-    location: "Library",
-    description: "Found near the front desk area.",
-    claimId: "LF-00179",
-    status: "Approved",
-    image: "/image/student/silver iphone.jpeg",
-    archived: false,
-  },
-  {
-    id: 3,
-    itemName: "Set of Keys",
-    claimedDate: "April 16, 2024",
-    reportedDate: "April 16, 2024",
-    submittedDate: "April 16, 2024",
-    location: "Library",
-    description: "Found in the hallway near Room C214.",
-    claimId: "LF-00165",
-    status: "Rejected",
-    image: "/image/student/keys.jpeg",
-    archived: false,
-  },
-  {
-    id: 4,
-    itemName: "AirPods",
-    claimedDate: "March 28, 2024",
-    reportedDate: "March 27, 2024",
-    submittedDate: "March 28, 2024",
-    location: "Student Lounge",
-    description: "Claim completed and item already collected.",
-    claimId: "LF-00122",
-    status: "Collected",
-    image: "/image/student/airpods.jpeg",
-    archived: true,
-  },
-];
+type ItemRecord = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: ItemCategory;
+  status: ItemStatus;
+  registeredById: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ClaimItem = {
+  id: string;
+  itemId: string;
+  itemName: string;
+  itemDescription: string;
+  itemCategory: ItemCategory;
+  itemStatus: ItemStatus;
+  submittedDate: string;
+  proofDescription: string;
+  status: ClaimStatus;
+};
+
+const CLAIM_IDS_STORAGE_KEY = "student_claim_ids";
+
+const CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
+  pending: "Under Review",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+const ITEM_STATUS_LABELS: Record<ItemStatus, string> = {
+  lost: "Lost",
+  claimed: "Claimed",
+  approved_claim: "Approved Claim",
+  picked_up: "Picked Up",
+};
+
+const CATEGORY_LABELS: Record<ItemCategory, string> = {
+  electronics: "Electronics",
+  clothing: "Clothing",
+  accessories: "Accessories",
+  documents: "Documents",
+  other: "Other",
+};
+
+const parseStoredClaimIds = () => {
+  if (typeof window === "undefined") {
+    return [] as string[];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CLAIM_IDS_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as string[]) : [];
+    return parsed.filter((id) => typeof id === "string" && id.length > 0);
+  } catch {
+    return [] as string[];
+  }
+};
+
+const persistClaimIds = (claimIds: string[]) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    CLAIM_IDS_STORAGE_KEY,
+    JSON.stringify(claimIds.slice(0, 50))
+  );
+};
+
+const formatDate = (value: string) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString();
+};
+
+const getStatusClassName = (status: ClaimStatus) => {
+  if (status === "approved") {
+    return styles.statusApproved;
+  }
+  if (status === "rejected") {
+    return styles.statusRejected;
+  }
+  return styles.statusReview;
+};
+
+const fetchClaimView = async (claimId: string): Promise<ClaimItem> => {
+  const claimResponse = await fetch(`/api/student/claims/${claimId}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const claimData = await claimResponse.json();
+  if (!claimResponse.ok) {
+    const message =
+      typeof claimData?.error === "string"
+        ? claimData.error
+        : "Failed to fetch claim.";
+    throw new Error(message);
+  }
+
+  const claim = claimData as ClaimRecord;
+
+  let item: ItemRecord | null = null;
+  const itemResponse = await fetch(`/api/student/items/${claim.itemId}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  if (itemResponse.ok) {
+    item = (await itemResponse.json()) as ItemRecord;
+  }
+
+  return {
+    id: claim.id,
+    itemId: claim.itemId,
+    itemName: item?.name ?? `Item ${claim.itemId.slice(0, 8)}`,
+    itemDescription: item?.description ?? "No item description available.",
+    itemCategory: item?.category ?? "other",
+    itemStatus: item?.status ?? "claimed",
+    submittedDate: claim.createdAt,
+    proofDescription: claim.proofDescription,
+    status: claim.status,
+  };
+};
 
 export default function MyClaimsPage() {
-  const [activeTab, setActiveTab] = useState<"claimed" | "archived">("claimed");
+  const [claims, setClaims] = useState<ClaimItem[]>([]);
+  const [isLoadingClaims, setIsLoadingClaims] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [claimLookupId, setClaimLookupId] = useState("");
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [isLookingUpClaim, setIsLookingUpClaim] = useState(false);
+
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
+  const upsertClaim = (incoming: ClaimItem) => {
+    setClaims((prev) => {
+      const next = [incoming, ...prev.filter((claim) => claim.id !== incoming.id)];
+      persistClaimIds(next.map((claim) => claim.id));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadStoredClaims = async () => {
+      setIsLoadingClaims(true);
+      setLoadError(null);
+
+      const ids = parseStoredClaimIds();
+      if (ids.length === 0) {
+        if (isMounted) {
+          setClaims([]);
+          setIsLoadingClaims(false);
+        }
+        return;
+      }
+
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            return await fetchClaimView(id);
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      if (!isMounted) {
+        return;
+      }
+
+      const validClaims = results.filter((claim): claim is ClaimItem => claim !== null);
+      setClaims(validClaims);
+      persistClaimIds(validClaims.map((claim) => claim.id));
+
+      if (validClaims.length === 0) {
+        setLoadError("No claim records were found for stored claim IDs.");
+      }
+
+      setIsLoadingClaims(false);
+    };
+
+    void loadStoredClaims();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleLookupSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const trimmedId = claimLookupId.trim();
+    if (!trimmedId) {
+      setLookupError("Please enter a claim ID.");
+      return;
+    }
+
+    setLookupError(null);
+    setIsLookingUpClaim(true);
+
+    try {
+      const claim = await fetchClaimView(trimmedId);
+      upsertClaim(claim);
+      setClaimLookupId("");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load claim by ID.";
+      setLookupError(message);
+    } finally {
+      setIsLookingUpClaim(false);
+    }
+  };
+
+  const handleRefreshClaim = async (claimId: string) => {
+    try {
+      const refreshed = await fetchClaimView(claimId);
+      upsertClaim(refreshed);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to refresh claim.";
+      setLookupError(message);
+    }
+  };
+
   const visibleClaims = useMemo(() => {
-    let filtered = allClaims.filter((claim) =>
-      activeTab === "claimed" ? !claim.archived : claim.archived
-    );
+    let filtered = [...claims];
 
     if (statusFilter !== "all") {
       filtered = filtered.filter(
         (claim) =>
-          claim.status.toLowerCase().replace(/\s+/g, "-") === statusFilter
+          claim.status.toLowerCase() === statusFilter
       );
     }
 
     filtered = [...filtered].sort((a, b) => {
-      if (sortBy === "newest") return b.id - a.id;
-      return a.id - b.id;
+      const left = new Date(a.submittedDate).getTime();
+      const right = new Date(b.submittedDate).getTime();
+      if (sortBy === "newest") return right - left;
+      return left - right;
     });
 
     return filtered;
-  }, [activeTab, statusFilter, sortBy]);
-
-  const claimedCount = allClaims.filter((item) => !item.archived).length;
-  const archivedCount = allClaims.filter((item) => item.archived).length;
+  }, [claims, statusFilter, sortBy]);
 
   return (
     <div className={styles.studentPage}>
@@ -128,11 +303,6 @@ export default function MyClaimsPage() {
             <Link href="/student" className={styles.navItem}>
               <Home size={20} />
               <span>Home</span>
-            </Link>
-
-            <Link href="/student/report_items" className={styles.navItem}>
-              <FileText size={20} />
-              <span>Report Item</span>
             </Link>
 
             <Link
@@ -166,9 +336,6 @@ export default function MyClaimsPage() {
               <Link href="/student" className={styles.topLink}>
                 Home
               </Link>
-              <Link href="/student/report_items" className={styles.topLink}>
-                Report Item
-              </Link>
               <Link
                 href="/student/my-claims"
                 className={`${styles.topLink} ${styles.topLinkActive}`}
@@ -192,7 +359,7 @@ export default function MyClaimsPage() {
         <section className={styles.heroBanner}>
           <h2>My Claims</h2>
           <p>
-            Track the status of items you&apos;ve claimed or reported as lost.
+            Track the status of claims you submitted.
           </p>
 
           <div className={styles.filtersRow}>
@@ -202,10 +369,9 @@ export default function MyClaimsPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="all">All Status</option>
-                <option value="under-review">Under Review</option>
+                <option value="pending">Under Review</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
-                <option value="collected">Collected</option>
               </select>
               <ChevronDown size={18} />
             </div>
@@ -221,116 +387,98 @@ export default function MyClaimsPage() {
               <ChevronDown size={18} />
             </div>
           </div>
-        </section>
 
-        <section className={styles.tabsSection}>
-          <div className={styles.tabs}>
+          <form className={styles.lookupForm} onSubmit={handleLookupSubmit}>
+            <input
+              className={styles.lookupInput}
+              value={claimLookupId}
+              onChange={(e) => setClaimLookupId(e.target.value)}
+              placeholder="Enter claim ID to load (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
+            />
             <button
-              className={`${styles.tabBtn} ${
-                activeTab === "claimed" ? styles.tabActive : ""
-              }`}
-              onClick={() => setActiveTab("claimed")}
+              type="submit"
+              className={styles.lookupBtn}
+              disabled={isLookingUpClaim}
             >
-              Claimed Items ({claimedCount})
+              {isLookingUpClaim ? "Loading..." : "Load Claim"}
             </button>
+          </form>
 
-            <button
-              className={`${styles.tabBtn} ${
-                activeTab === "archived" ? styles.tabActive : ""
-              }`}
-              onClick={() => setActiveTab("archived")}
-            >
-              Archived Claims ({archivedCount})
-            </button>
-          </div>
+          {lookupError && <p className={styles.stateMessage}>{lookupError}</p>}
         </section>
 
         <section className={styles.claimsSection}>
-          <h3>
-            {activeTab === "claimed"
-              ? `Claimed Items (${claimedCount})`
-              : `Archived Claims (${archivedCount})`}
-          </h3>
+          <h3>My Claims ({visibleClaims.length})</h3>
 
-          <div className={styles.claimsGrid}>
-            {visibleClaims.map((claim) => (
-              <div className={styles.claimCard} key={claim.id}>
-                <div className={styles.claimTop}>
-                  <div className={styles.claimImageWrap}>
-                    <img
-                      src={claim.image}
-                      alt={claim.itemName}
-                      className={styles.claimImage}
-                    />
+          {isLoadingClaims ? (
+            <p className={styles.emptyState}>Loading claims...</p>
+          ) : loadError ? (
+            <p className={styles.emptyState}>{loadError}</p>
+          ) : visibleClaims.length === 0 ? (
+            <p className={styles.emptyState}>
+              No claims loaded yet. Submit a claim from Home, or load one by Claim
+              ID above.
+            </p>
+          ) : (
+            <div className={styles.claimsGrid}>
+              {visibleClaims.map((claim) => (
+                <div className={styles.claimCard} key={claim.id}>
+                  <div className={styles.claimTop}>
+                    <div className={styles.claimImageWrap}>
+                      <div className={styles.claimImagePlaceholder}>
+                        {CATEGORY_LABELS[claim.itemCategory]}
+                      </div>
+                    </div>
+
+                    <div className={styles.claimMainInfo}>
+                      <h4>{claim.itemName}</h4>
+                      <p className={styles.claimedDate}>
+                        Submitted: {formatDate(claim.submittedDate)}
+                      </p>
+
+                      <span
+                        className={`${styles.statusBadge} ${getStatusClassName(
+                          claim.status
+                        )}`}
+                      >
+                        {CLAIM_STATUS_LABELS[claim.status]}
+                      </span>
+
+                      <p className={styles.claimId}>ID: {claim.id}</p>
+                    </div>
                   </div>
 
-                  <div className={styles.claimMainInfo}>
-                    <h4>{claim.itemName}</h4>
-                    <p className={styles.claimedDate}>
-                      Claimed: {claim.claimedDate}
+                  <div className={styles.claimBody}>
+                    <p>
+                      <strong>Item ID:</strong> {claim.itemId}
                     </p>
+                    <p>
+                      <strong>Category:</strong> {CATEGORY_LABELS[claim.itemCategory]}
+                    </p>
+                    <p>
+                      <strong>Item Status:</strong> {ITEM_STATUS_LABELS[claim.itemStatus]}
+                    </p>
+                    <p>
+                      <strong>Item Description:</strong> {claim.itemDescription}
+                    </p>
+                    <p>
+                      <strong>Proof:</strong> {claim.proofDescription}
+                    </p>
+                  </div>
 
-                    <span
-                      className={`${styles.statusBadge} ${
-                        claim.status === "Under Review"
-                          ? styles.statusReview
-                          : claim.status === "Approved"
-                          ? styles.statusApproved
-                          : claim.status === "Rejected"
-                          ? styles.statusRejected
-                          : styles.statusCollected
-                      }`}
+                  <div className={styles.claimActions}>
+                    <button
+                      className={styles.primaryBtn}
+                      type="button"
+                      onClick={() => handleRefreshClaim(claim.id)}
                     >
-                      {claim.status}
-                    </span>
-
-                    <p className={styles.claimId}>ID: {claim.claimId}</p>
+                      Refresh
+                    </button>
                   </div>
                 </div>
-
-                <div className={styles.claimBody}>
-                  <p>
-                    <strong>Reported:</strong> {claim.reportedDate}
-                  </p>
-                  <p>
-                    <strong>Location:</strong> {claim.location}
-                  </p>
-                  <p>
-                    <strong>Description:</strong> {claim.description}
-                  </p>
-                  <p>
-                    <strong>Submitted on:</strong> {claim.submittedDate}
-                  </p>
-                </div>
-
-                <div className={styles.claimActions}>
-                  <button className={styles.primaryBtn}>View Details</button>
-
-                  {claim.status === "Under Review" && !claim.archived && (
-                    <button className={styles.secondaryDangerBtn}>
-                      Cancel Claim
-                    </button>
-                  )}
-
-                  {claim.status === "Approved" && !claim.archived && (
-                    <button className={styles.primaryOutlineBtn}>
-                      Mark as Collected
-                    </button>
-                  )}
-
-                  {claim.status === "Rejected" && !claim.archived && (
-                    <button className={styles.secondaryBtn}>See Reason</button>
-                  )}
-
-                  {claim.archived && (
-                    <button className={styles.secondaryBtn}>
-                      View History
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>
