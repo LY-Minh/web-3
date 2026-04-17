@@ -3,15 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, ShieldCheck, User } from "lucide-react";
+import { authClient } from "@/auth/auth-client";
 
 type Mode = "login" | "signup";
-type Role = "admin" | "student";
 
 export default function HomePage() {
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>("login");
-  const [role, setRole] = useState<Role>("admin");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -35,19 +36,64 @@ export default function HomePage() {
       email: "",
       password: "",
     });
+    setErrorMessage(null);
   };
 
-  const handleRoleChange = (newRole: Role) => {
-    setRole(newRole);
-  };
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const redirectByRole = (role?: string) => {
     if (role === "admin") {
       router.push("/admin");
-    } else {
-      router.push("/student");
+      return;
+    }
+
+    router.push("/student");
+  };
+
+  const getRoleFromUser = (user: unknown): string | undefined => {
+    if (!user || typeof user !== "object") {
+      return undefined;
+    }
+
+    const maybeRole = (user as { role?: unknown }).role;
+    return typeof maybeRole === "string" ? maybeRole : undefined;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      if (mode === "login") {
+        const { data, error } = await authClient.signIn.email({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (error) {
+          setErrorMessage(error.message ?? "Login failed. Please try again.");
+          return;
+        }
+
+        redirectByRole(getRoleFromUser(data?.user));
+        return;
+      }
+
+      const { data, error } = await authClient.signUp.email({
+        name: formData.username,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        setErrorMessage(error.message ?? "Sign up failed. Please try again.");
+        return;
+      }
+
+      redirectByRole(getRoleFromUser(data?.user));
+    } catch {
+      setErrorMessage("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -92,34 +138,8 @@ export default function HomePage() {
                   {mode === "login" ? "Login" : "Sign Up"}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Choose your role and continue.
+                  Continue with your account.
                 </p>
-              </div>
-
-              <div className="mb-4 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange("admin")}
-                  className={`rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    role === "admin"
-                      ? "bg-[#082a57] text-white"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Admin
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange("student")}
-                  className={`rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    role === "student"
-                      ? "bg-[#082a57] text-white"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Student
-                </button>
               </div>
 
               <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
@@ -163,6 +183,7 @@ export default function HomePage() {
                         onChange={handleChange}
                         placeholder="Enter your username"
                         className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                        required={mode === "signup"}
                       />
                     </div>
                   </div>
@@ -179,8 +200,9 @@ export default function HomePage() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder={`Enter your ${role} email`}
+                      placeholder="Enter your email"
                       className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                      required
                     />
                   </div>
                 </div>
@@ -198,17 +220,25 @@ export default function HomePage() {
                       onChange={handleChange}
                       placeholder="Enter your password"
                       className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                      required
                     />
                   </div>
                 </div>
 
+                {errorMessage && (
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                )}
+
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="mt-2 w-full rounded-xl bg-[#2563eb] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
                 >
-                  {mode === "login"
-                    ? `Login as ${role === "admin" ? "Admin" : "Student"}`
-                    : `Sign Up as ${role === "admin" ? "Admin" : "Student"}`}
+                  {isSubmitting
+                    ? "Please wait..."
+                    : mode === "login"
+                      ? "Login"
+                      : "Sign Up"}
                 </button>
               </form>
             </div>

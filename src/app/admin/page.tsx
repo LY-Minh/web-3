@@ -138,6 +138,7 @@ function getActionButtonClass(action: string) {
 }
 
 export default function AdminPage() {
+
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-900">
       <div className="flex min-h-screen">
