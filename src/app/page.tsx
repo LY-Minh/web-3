@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, ShieldCheck, User } from "lucide-react";
-import { authClient } from "@/auth/auth-client";
 
 type Mode = "login" | "signup";
 
@@ -41,15 +40,17 @@ export default function HomePage() {
 
   const redirectByRole = (role?: string) => {
     if (role === "admin") {
-      router.push("/admin");
+      router.replace("/admin");
+      router.refresh();
       return;
     }
 
-    router.push("/student");
+    router.replace("/student");
+    router.refresh();
   };
 
   const getRoleFromUser = (user: unknown): string | undefined => {
-    if (!user || typeof user !== "object") {
+    if (!user) {
       return undefined;
     }
 
@@ -64,35 +65,55 @@ export default function HomePage() {
 
     try {
       if (mode === "login") {
-        const { data, error } = await authClient.signIn.email({
-          email: formData.email,
-          password: formData.password,
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
         });
 
-        if (error) {
-          setErrorMessage(error.message ?? "Login failed. Please try again.");
+        const data = await response.json();
+
+        if (!response.ok) {
+          setErrorMessage(data.error ?? "Login failed. Please try again.");
+          setIsSubmitting(false);
           return;
         }
 
+        setIsSubmitting(false);
         redirectByRole(getRoleFromUser(data?.user));
         return;
       }
 
-      const { data, error } = await authClient.signUp.email({
-        name: formData.username,
-        email: formData.email,
-        password: formData.password,
+      const response = await fetch("/api/auth/sign-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
-      if (error) {
-        setErrorMessage(error.message ?? "Sign up failed. Please try again.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.error ?? "Sign up failed. Please try again.");
+        setIsSubmitting(false);
         return;
       }
 
-      redirectByRole(getRoleFromUser(data?.user));
-    } catch {
+      const role = getRoleFromUser(data?.user);
+
+      setIsSubmitting(false);
+      redirectByRole(role);
+    } catch (error) {
+      console.error("Catch error:", error);
       setErrorMessage("Something went wrong. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   };
