@@ -1,11 +1,19 @@
-import { claimsTable, itemsTable } from "@/db/schema/schema";
+import { claimsTable, filesTable, itemsTable } from "@/db/schema/schema";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 type CreateClaimParams = {
     itemId: string;
     studentId: string;
     proofDescription: string;
+};
+
+type CreateClaimFileParams = {
+    fileName: string;
+    fileType: string | null;
+    fileUrl: string;
+    s3Key: string;
+    uploadedById: string;
 };
 
 type ClaimReviewParams = {
@@ -14,8 +22,40 @@ type ClaimReviewParams = {
 };
 
 class ClaimRepository {
-    async createClaimWithStatusUpdate(claim: CreateClaimParams) {
+    async createClaimWithStatusUpdate(
+        claim: CreateClaimParams,
+        files: CreateClaimFileParams[] = []
+    ) {
         return db.transaction(async (tx) => {
+            const [item] = await tx
+                .select()
+                .from(itemsTable)
+                .where(eq(itemsTable.id, claim.itemId))
+                .limit(1);
+
+            if (!item) {
+                throw new Error("ITEM_NOT_FOUND");
+            }
+
+            if (item.status === "approved_claim") {
+                throw new Error("ITEM_NOT_CLAIMABLE");
+            }
+
+            const [existingClaim] = await tx
+                .select({ id: claimsTable.id })
+                .from(claimsTable)
+                .where(
+                    and(
+                        eq(claimsTable.itemId, claim.itemId),
+                        eq(claimsTable.studentId, claim.studentId)
+                    )
+                )
+                .limit(1);
+
+            if (existingClaim) {
+                throw new Error("DUPLICATE_CLAIM");
+            }
+
             const [createdClaim] = await tx
                 .insert(claimsTable)
                 .values(claim)
@@ -25,14 +65,27 @@ class ClaimRepository {
                 return null;
             }
 
+            if (files.length > 0) {
+                await tx.insert(filesTable).values(
+                    files.map((file) => ({
+                        ...file,
+                        claimId: createdClaim.id,
+                        itemId: null,
+                        isActive: true,
+                    }))
+                );
+            }
+
             // Update item status to "claimed"
-            await tx
-                .update(itemsTable)
-                .set({
-                    status: "claimed",
-                    updatedAt: new Date(),
-                })
-                .where(eq(itemsTable.id, claim.itemId));
+            if (item.status === "lost") {
+                await tx
+                    .update(itemsTable)
+                    .set({
+                        status: "claimed",
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(itemsTable.id, claim.itemId));
+            }
 
             return createdClaim;
         });
@@ -64,6 +117,21 @@ class ClaimRepository {
             .select()
             .from(claimsTable)
             .where(eq(claimsTable.itemId, itemId));
+    }
+
+    async hasClaimForItemByStudent(itemId: string, studentId: string) {
+        const [claim] = await db
+            .select({ id: claimsTable.id })
+            .from(claimsTable)
+            .where(
+                and(
+                    eq(claimsTable.itemId, itemId),
+                    eq(claimsTable.studentId, studentId)
+                )
+            )
+            .limit(1);
+
+        return Boolean(claim);
     }
 
     async reviewClaim(

@@ -1,6 +1,5 @@
 import { auth } from "@/auth/auth";
 import { NextResponse } from "next/server";
-import { ca } from "zod/locales";
 
 export async function POST(request: Request) {
     try {

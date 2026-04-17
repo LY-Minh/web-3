@@ -141,20 +141,23 @@
 .topLinks {
   display: flex;
   align-items: center;
-  gap: 34px;
+  gap: 30px;
 }
 
 .topLink {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
   text-decoration: none;
   color: #26344d;
   font-size: 17px;
   font-weight: 500;
-  padding-bottom: 8px;
+  line-height: 1;
 }
 
 .topLinkActive {
   color: #1b56d8;
-  border-bottom: 3px solid #1b56d8;
+  box-shadow: inset 0 -3px 0 #1b56d8;
 }
 
 .userBox {
@@ -176,7 +179,7 @@
 }
 
 .userBoxButton {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
   color: #26344d;
@@ -184,7 +187,9 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
+  height: 40px;
+  padding: 0 2px;
+  line-height: 1;
 }
 
 .profileDropdown {
@@ -649,6 +654,57 @@
   box-shadow: 0 0 0 4px rgba(59, 108, 255, 0.12);
 }
 
+.fileInputHidden {
+  display: none;
+}
+
+.fileUploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #dbe3f0;
+  background: #eef3fb;
+  color: #31415f;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fileUploadButton:hover {
+  background: #e4ebf6;
+}
+
+.fileUploadHint {
+  margin: 0;
+  font-size: 14px;
+  color: #5f6f8a;
+}
+
+.fileUploadList {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fileUploadItem {
+  border: 1px solid #dbe3f0;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #31415f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .claimSuccessMessage {
   background: #eaf8ef;
   border: 1px solid #b8e3c2;
@@ -709,7 +765,7 @@
 }
 
 .userBoxButton {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
   color: #26344d;
@@ -717,7 +773,9 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
+  height: 40px;
+  padding: 0 2px;
+  line-height: 1;
 }
 
 .profileDropdown {

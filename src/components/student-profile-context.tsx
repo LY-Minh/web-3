@@ -17,17 +17,24 @@ type StudentProfile = {
   profileImage: string;
 };
 
+type SessionResponse = {
+  user?: {
+    name?: string;
+    email?: string;
+  };
+};
+
 type StudentProfileContextType = {
   profile: StudentProfile;
   updateProfile: (updates: Partial<StudentProfile>) => void;
 };
 
 const DEFAULT_PROFILE: StudentProfile = {
-  fullName: "John Doe",
-  email: "johndoe@example.com",
+  fullName: "Student",
+  email: "",
   phone: "012 345 678",
   bio: "Student at AUPP.",
-  profileImage: "https://i.pravatar.cc/200?img=12",
+  profileImage: "",
 };
 
 const STORAGE_KEY = "student-profile";
@@ -41,18 +48,59 @@ export function StudentProfileProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    let isMounted = true;
 
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as StudentProfile;
-        setProfile(parsed);
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
+    const hydrateProfile = async () => {
+      const saved = localStorage.getItem(STORAGE_KEY);
+
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as StudentProfile;
+          if (isMounted) {
+            setProfile(parsed);
+          }
+        } catch {
+          localStorage.removeItem(STORAGE_KEY);
+        }
       }
-    }
 
-    setHydrated(true);
+      try {
+        const response = await fetch("/api/auth/get-session", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const session = (await response.json()) as SessionResponse;
+        const sessionName = session.user?.name?.trim();
+        const sessionEmail = session.user?.email?.trim();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfile((prev) => ({
+          ...prev,
+          fullName: sessionName || prev.fullName,
+          email: sessionEmail || prev.email,
+          profileImage: "",
+        }));
+      } finally {
+        if (isMounted) {
+          setHydrated(true);
+        }
+      }
+    };
+
+    void hydrateProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {

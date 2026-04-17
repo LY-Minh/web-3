@@ -1,9 +1,11 @@
 import { claimRepository } from "./claimRepository";
+import { uploadMultipleFiles } from "@/storgae/s3Service";
 
 type CreateClaimInput = {
     itemId: string;
     studentId: string;
     proofDescription: string;
+    files: File[];
 };
 
 type ReviewClaimInput = {
@@ -15,12 +17,30 @@ type ReviewClaimInput = {
 class ClaimService {
     constructor(private repo: typeof claimRepository) {}
 
+    async hasExistingClaim(itemId: string, studentId: string) {
+        return this.repo.hasClaimForItemByStudent(itemId, studentId);
+    }
+
     async fileClaim(input: CreateClaimInput) {
+        const uploadedKeys = await uploadMultipleFiles(input.files, "claims", false);
+
+        const fileRows = uploadedKeys.map((key, index) => {
+            const originalFile = input.files[index];
+
+            return {
+                fileName: originalFile.name,
+                fileType: originalFile.type || null,
+                fileUrl: key,
+                s3Key: key,
+                uploadedById: input.studentId,
+            };
+        });
+
         return this.repo.createClaimWithStatusUpdate({
             itemId: input.itemId,
             studentId: input.studentId,
             proofDescription: input.proofDescription,
-        });
+        }, fileRows);
     }
 
     async getClaimById(id: string) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/auth/auth";
 import { claimService } from "@/server/claims/claimService";
 
 export const GET = async (

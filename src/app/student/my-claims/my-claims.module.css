@@ -164,20 +164,23 @@
 .topLinks {
   display: flex;
   align-items: center;
-  gap: 34px;
+  gap: 30px;
 }
 
 .topLink {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
   text-decoration: none;
   color: #26344d;
   font-size: 17px;
   font-weight: 500;
-  padding-bottom: 8px;
+  line-height: 1;
 }
 
 .topLinkActive {
   color: #1b56d8;
-  border-bottom: 3px solid #1b56d8;
+  box-shadow: inset 0 -3px 0 #1b56d8;
 }
 
 .userBox {
@@ -249,6 +252,59 @@
   transform: translateY(-50%);
   color: #8391aa;
   pointer-events: none;
+}
+
+.lookupForm {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lookupInput {
+  flex: 1;
+  min-width: 280px;
+  height: 56px;
+  border: 1px solid #d7dfeb;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #2f3f5c;
+}
+
+.lookupBtn {
+  height: 56px;
+  border: none;
+  border-radius: 14px;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, #123449 0%, #0f2b4a 100%);
+  color: #fff;
+}
+
+.lookupBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.stateMessage {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #b42318;
+  font-weight: 600;
+}
+
+.emptyState {
+  margin: 0;
+  padding: 22px;
+  border-radius: 14px;
+  border: 1px dashed #d7dfeb;
+  background: #ffffff;
+  color: #4f607c;
+  font-size: 15px;
 }
 
 .tabsSection {
@@ -334,6 +390,18 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.claimImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #eaf0fa;
+  color: #31415f;
+  text-align: center;
+  font-weight: 700;
+  padding: 10px;
 }
 
 .claimMainInfo {
@@ -498,7 +566,7 @@
 }
 
 .userBoxButton {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
   color: #26344d;
@@ -506,7 +574,9 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
+  height: 40px;
+  padding: 0 2px;
+  line-height: 1;
 }
 
 .profileDropdown {

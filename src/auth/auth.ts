@@ -24,7 +24,7 @@ import * as schema from "@/db/schema/auth-schema";
     plugins: [
         admin({
             defaultRole: "student", 
-            adminRole: "admin",
+        adminRoles: ["admin"],
         })
     ],
     session: {

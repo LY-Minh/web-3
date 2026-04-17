@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { itemService } from "@/server/items/itemService";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/auth/auth";
 
 const Item = z.object({
     name: z.string(),
