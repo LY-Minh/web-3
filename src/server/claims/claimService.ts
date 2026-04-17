@@ -1,5 +1,6 @@
 import { claimRepository } from "./claimRepository";
 import { uploadMultipleFiles } from "@/storgae/s3Service";
+import { logAction } from "@/util/helper";
 
 type CreateClaimInput = {
     itemId: string;
@@ -18,7 +19,13 @@ class ClaimService {
     constructor(private repo: typeof claimRepository) {}
 
     async hasExistingClaim(itemId: string, studentId: string) {
-        return this.repo.hasClaimForItemByStudent(itemId, studentId);
+        const exists = await this.repo.hasClaimForItemByStudent(itemId, studentId);
+        await logAction(
+            studentId,
+            "CLAIM_EXISTENCE_CHECKED",
+            `itemId=${itemId}; exists=${exists}`
+        );
+        return exists;
     }
 
     async fileClaim(input: CreateClaimInput) {
@@ -36,34 +43,58 @@ class ClaimService {
             };
         });
 
-        return this.repo.createClaimWithStatusUpdate({
+        const createdClaim = await this.repo.createClaimWithStatusUpdate({
             itemId: input.itemId,
             studentId: input.studentId,
             proofDescription: input.proofDescription,
         }, fileRows);
+
+        await logAction(
+            input.studentId,
+            createdClaim ? "CLAIM_FILED" : "CLAIM_FILE_FAILED",
+            `itemId=${input.itemId}; files=${input.files.length}`
+        );
+
+        return createdClaim;
     }
 
     async getClaimById(id: string) {
-        return this.repo.getClaimById(id);
+        const claim = await this.repo.getClaimById(id);
+        await logAction(null, "CLAIM_FETCHED_BY_ID", `claimId=${id}; found=${Boolean(claim)}`);
+        return claim;
     }
 
     async getAllClaims() {
-        return this.repo.getAllClaims();
+        const claims = await this.repo.getAllClaims();
+        await logAction(null, "CLAIMS_FETCHED_ALL", `count=${claims.length}`);
+        return claims;
     }
 
     async getClaimsByStudentId(studentId: string) {
-        return this.repo.getClaimsByStudentId(studentId);
+        const claims = await this.repo.getClaimsByStudentId(studentId);
+        await logAction(studentId, "CLAIMS_FETCHED_BY_STUDENT", `count=${claims.length}`);
+        return claims;
     }
 
     async getClaimsByItemId(itemId: string) {
-        return this.repo.getClaimsByItemId(itemId);
+        const claims = await this.repo.getClaimsByItemId(itemId);
+        await logAction(null, "CLAIMS_FETCHED_BY_ITEM", `itemId=${itemId}; count=${claims.length}`);
+        return claims;
     }
 
     async reviewClaim(input: ReviewClaimInput) {
-        return this.repo.reviewClaim(input.claimId, {
+        const reviewedClaim = await this.repo.reviewClaim(input.claimId, {
             status: input.status,
             adminId: input.adminId,
         });
+
+        await logAction(
+            input.adminId,
+            reviewedClaim ? "CLAIM_REVIEWED" : "CLAIM_REVIEW_FAILED",
+            `claimId=${input.claimId}; status=${input.status}`
+        );
+
+        return reviewedClaim;
     }
 }
 
