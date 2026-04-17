@@ -24,21 +24,34 @@ export default function AdminItemsPage() {
         </button>
       </div>
 
-      {/* FILTER ROW */}
+      {/* FILTER ROW (Location Dropdown Deleted!) */}
       <div className={styles.filterBar}>
         <div className={styles.filterSearch}>
           <Search size={16} color="#94a3b8" />
-          <input type="text" placeholder="Search items by name, category, or location..." />
+          <input type="text" placeholder="Search items by name or ID..." />
         </div>
-        <select className={styles.filterSelect}>
-          <option>All Categories</option>
+        
+        {/* Category Dropdown */}
+        <select className={styles.filterSelect} defaultValue="all">
+          <option value="all">All Categories</option>
+          <option value="electronics">Electronics</option>
+          <option value="bags">Bags</option>
+          <option value="accessories">Accessories</option>
+          <option value="personal">Personal Items</option>
+          <option value="documents">Documents</option>
+          <option value="clothing">Clothing</option>
+          <option value="keys">Keys</option>
         </select>
-        <select className={styles.filterSelect}>
-          <option>All Status</option>
+
+        {/* Status Dropdown */}
+        <select className={styles.filterSelect} defaultValue="all">
+          <option value="all">All Statuses</option>
+          <option value="available">Available</option>
+          <option value="pending">Pending Claim</option>
+          <option value="claimed">Claimed (Returned)</option>
+          <option value="unavailable">Unavailable</option>
         </select>
-        <select className={styles.filterSelect}>
-          <option>All Locations</option>
-        </select>
+        
         <button className={styles.filterBtn}>
           <Filter size={16} /> Filters
         </button>
@@ -103,7 +116,6 @@ export default function AdminItemsPage() {
             </tr>
           </thead>
           <tbody>
-            {/* Row 1 */}
             <tr>
               <td>
                 <div className={styles.itemCell}>
@@ -132,7 +144,6 @@ export default function AdminItemsPage() {
                 </div>
               </td>
             </tr>
-            {/* Row 2 */}
             <tr>
               <td>
                 <div className={styles.itemCell}>
@@ -161,7 +172,6 @@ export default function AdminItemsPage() {
                 </div>
               </td>
             </tr>
-            {/* Row 3 */}
             <tr>
               <td>
                 <div className={styles.itemCell}>
@@ -211,7 +221,7 @@ export default function AdminItemsPage() {
       {/* NEW ITEM MODAL */}
       {isModalOpen && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
+          <div className={styles.modalContent} style={{ width: '450px', overflowY: 'auto' }}>
             <div className={styles.modalHeader}>
               <h3>Register New Item</h3>
               <button className={styles.closeBtn} onClick={() => setIsModalOpen(false)}>
@@ -222,23 +232,54 @@ export default function AdminItemsPage() {
             <form className={styles.modalForm} onSubmit={(e) => e.preventDefault()}>
               <div className={styles.formGroup}>
                 <label>Item Name</label>
-                <input type="text" placeholder="e.g. Blue Hydroflask" />
+                <input type="text" placeholder="e.g. AirPods Pro" required />
               </div>
+              
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div className={styles.formGroup} style={{ flex: 1 }}>
+                  <label>Category</label>
+                  <select required defaultValue="">
+                    <option value="" disabled>Select category</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="bags">Bags</option>
+                    <option value="accessories">Accessories</option>
+                    <option value="personal">Personal Items</option>
+                    <option value="documents">Documents</option>
+                    <option value="clothing">Clothing</option>
+                    <option value="keys">Keys</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup} style={{ flex: 1 }}>
+                    <label>Status</label>
+                    <select required defaultValue="available">
+                        <option value="available">Available</option>
+                        <option value="pending">Pending Claim</option>
+                        <option value="claimed">Claimed (Returned)</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </div>
+              </div>
+
+              {/* Location is now a text input so it can be manually typed! */}
               <div className={styles.formGroup}>
-                <label>Category</label>
-                <select>
-                  <option>Bags</option>
-                  <option>Electronics</option>
-                  <option>Keys</option>
-                </select>
+                <label>Location Found</label>
+                <input type="text" placeholder="e.g. Library 2nd Floor, Room 104" required />
               </div>
+
               <div className={styles.formGroup}>
-                <label>Description</label>
-                <textarea placeholder="Any identifying marks?"></textarea>
+                <label>Reported By (Finder's Name)</label>
+                <input type="text" placeholder="Student or Staff Name" required />
               </div>
+
+              <div className={styles.formGroup}>
+                <label>Description & Condition</label>
+                <textarea placeholder="Any identifying marks, damage, or contents?" required></textarea>
+              </div>
+
               <div className={styles.modalActions}>
                 <button type="button" className={styles.cancelBtn} onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className={styles.submitBtn}>Add Item</button>
+                <button type="submit" className={styles.submitBtn}>Save Item</button>
               </div>
             </form>
           </div>
