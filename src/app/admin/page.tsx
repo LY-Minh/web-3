@@ -139,6 +139,7 @@ function SidebarItem({ icon: Icon, label, active = false, trailing = false }: { 
 
 // --- Main Page Component ---
 export default function AdminPage() {
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
       {/* Sidebar */}
