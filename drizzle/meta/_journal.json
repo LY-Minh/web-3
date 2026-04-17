@@ -29,6 +29,27 @@
       "when": 1775797795188,
       "tag": "0003_ambiguous_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776166800000,
+      "tag": "0004_tiny_file_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776144121974,
+      "tag": "0005_sticky_thanos",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776144333089,
+      "tag": "0006_boring_hulk",
+      "breakpoints": true
     }
   ]
 }

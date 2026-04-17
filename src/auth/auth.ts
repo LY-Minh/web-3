@@ -22,7 +22,10 @@ import * as schema from "@/db/schema/auth-schema";
     },
   },
     plugins: [
-        admin() 
+        admin({
+            defaultRole: "student", 
+            adminRole: "admin",
+        })
     ],
     session: {
         expiresIn: 604800
