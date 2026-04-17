@@ -4,7 +4,7 @@ import { user } from "./auth-schema";
 
 // enums
 export const userRoleEnum = pgEnum("user_role", ["student", "admin"]);
-export const itemStatusEnum = pgEnum("item_status", ["lost", "claimed", "approved_claim", "returned"]);
+export const itemStatusEnum = pgEnum("item_status", ["lost", "claimed", "approved_claim", "picked_up"]);
 export const claimStatusEnum = pgEnum("claim_status", ["pending", "approved", "rejected"]);
 export const itemCategoryEnum = pgEnum("item_category", ["electronics", "clothing", "accessories", "documents", "other"]);
 

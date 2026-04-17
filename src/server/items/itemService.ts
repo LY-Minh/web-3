@@ -18,6 +18,8 @@ type UpdateItemInput = {
     files?: File[];
 };
 
+type ItemStatus = "lost" | "claimed" | "approved_claim";
+
 /**
  * DocBlock for ItemService:
  * - Get all endpoints (support pagination and filtering)
@@ -101,6 +103,10 @@ class ItemService {
 
     async deleteItem(id: string) {
         return this.itemRepo.deleteItemById(id);
+    }
+
+    async updateItemStatus(id: string, status: ItemStatus) {
+        return this.itemRepo.updateItemStatus(id, status);
     }
 }
 

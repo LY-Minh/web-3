@@ -24,6 +24,7 @@ type UpdateItemParams = {
 };
 
 type UpdateFileParams = CreateFileParams;
+type ItemStatus = "lost" | "claimed" | "approved_claim";
 
 class ItemRepository {
   
@@ -121,6 +122,19 @@ class ItemRepository {
 
             return deletedItem ?? null;
         });
+    }
+
+    async updateItemStatus(id: string, status: ItemStatus) {
+        const [updatedItem] = await db
+            .update(itemsTable)
+            .set({
+                status,
+                updatedAt: new Date(),
+            })
+            .where(eq(itemsTable.id, id))
+            .returning();
+
+        return updatedItem ?? null;
     }
 }
 
