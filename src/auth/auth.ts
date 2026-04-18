@@ -8,7 +8,12 @@ import * as schema from "@/db/schema/auth-schema";
  export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "pg",
-        schema: schema,
+         schema: {
+      user: schema.userTable,
+      session: schema.sessionTable,
+      account: schema.accountTable,
+      verification: schema.verification,
+    },
     }),
     user: {
     additionalFields: {
@@ -22,7 +27,10 @@ import * as schema from "@/db/schema/auth-schema";
     },
   },
     plugins: [
-        admin() 
+        admin({
+            defaultRole: "student", 
+        adminRoles: ["admin"],
+        })
     ],
     session: {
         expiresIn: 604800
