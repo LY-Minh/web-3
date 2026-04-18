@@ -1,6 +1,30 @@
 import { filesTable, itemsTable } from "@/db/schema/schema";
 import { db } from "@/db";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+
+export const ITEM_CATEGORY_VALUES = [
+    "electronics",
+    "clothing",
+    "accessories",
+    "documents",
+    "other",
+] as const;
+
+export const ITEM_STATUS_VALUES = [
+    "lost",
+    "claimed",
+    "approved_claim",
+    "picked_up",
+] as const;
+
+export type ItemCategory = (typeof ITEM_CATEGORY_VALUES)[number];
+export type ItemStatus = (typeof ITEM_STATUS_VALUES)[number];
+
+type GetAllItemsFilters = {
+    search?: string;
+    categories?: ItemCategory[];
+    statuses?: ItemStatus[];
+};
 
 type CreateItemParams = {
     name: string;
@@ -24,12 +48,47 @@ type UpdateItemParams = {
 };
 
 type UpdateFileParams = CreateFileParams;
-type ItemStatus = "lost" | "claimed" | "approved_claim";
 
 class ItemRepository {
   
-    async getAllItems() {
-        return db.select().from(itemsTable);
+    async getAllItems(filters: GetAllItemsFilters = {}) {
+        const search = filters.search?.trim();
+        const categories = filters.categories ?? [];
+        const statuses = filters.statuses ?? [];
+        const whereClauses = [];
+
+        if (search) {
+            whereClauses.push(
+                or(
+                    sql`${itemsTable.name} % ${search}`,
+                    ilike(itemsTable.name, `%${search}%`),
+                    ilike(itemsTable.description, `%${search}%`)
+                )
+            );
+        }
+
+        if (categories.length > 0) {
+            whereClauses.push(inArray(itemsTable.category, categories));
+        }
+
+        if (statuses.length > 0) {
+            whereClauses.push(inArray(itemsTable.status, statuses));
+        }
+
+        if (whereClauses.length > 0) {
+            const filteredQuery = db.select().from(itemsTable).where(and(...whereClauses));
+
+            if (search) {
+                return filteredQuery.orderBy(
+                    sql`similarity(${itemsTable.name}, ${search}) desc`,
+                    desc(itemsTable.createdAt)
+                );
+            }
+
+            return filteredQuery.orderBy(desc(itemsTable.createdAt));
+        }
+
+        return db.select().from(itemsTable).orderBy(desc(itemsTable.createdAt));
     }
     async getItemById(id: string) {
         const [item] = await db

@@ -1,6 +1,7 @@
 
-import { pgTable, text, timestamp, uuid, pgEnum, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, pgEnum, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { userTable } from "./auth-schema";
+import { sql } from "drizzle-orm";
 
 
 // enums
@@ -19,8 +20,12 @@ export const itemsTable = pgTable("items", {
     registeredById: text("registered_by_id").references(() => userTable.id).notNull(), 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
-
-});
+}, (t) => [
+    index("item_name_index").using(
+            "gin", 
+            sql`${t.name} gin_trgm_ops`
+        ),
+]);
 
 export const claimsTable = pgTable("claims", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -31,12 +36,12 @@ export const claimsTable = pgTable("claims", {
     reviewedById: text("reviewed_by_id").references(() => userTable.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-    claimsItemStudentUniqueIdx: uniqueIndex("claims_item_student_unique_idx").on(
+}, (table) => [
+   uniqueIndex("claims_item_student_unique_idx").on(
         table.itemId,
         table.studentId
     ),
-}));
+]);
 
 export const filesTable = pgTable("files", {
     id: uuid("id").defaultRandom().primaryKey(),
