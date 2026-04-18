@@ -1,4 +1,4 @@
-import { claimsTable, filesTable, itemsTable } from "@/db/schema/schema";
+import { claimsTable, filesTable, itemsTable, pickupAgreementsTable } from "@/db/schema/schema";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
 
@@ -168,6 +168,28 @@ class ClaimRepository {
                     updatedAt: new Date(),
                 })
                 .where(eq(itemsTable.id, claim.itemId));
+
+            if (reviewParams.status === "approved") {
+                const [existingAgreement] = await tx
+                    .select({ id: pickupAgreementsTable.id })
+                    .from(pickupAgreementsTable)
+                    .where(eq(pickupAgreementsTable.claimId, claim.id))
+                    .limit(1);
+
+                if (!existingAgreement) {
+                    await tx.insert(pickupAgreementsTable).values({
+                        claimId: claim.id,
+                        itemId: claim.itemId,
+                        studentId: claim.studentId,
+                        adminId: reviewParams.adminId,
+                        signedAt: null,
+                    });
+                }
+            } else {
+                await tx
+                    .delete(pickupAgreementsTable)
+                    .where(eq(pickupAgreementsTable.claimId, claim.id));
+            }
 
             return updatedClaim ?? null;
         });
