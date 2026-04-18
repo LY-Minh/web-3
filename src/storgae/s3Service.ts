@@ -1,6 +1,7 @@
 import s3Client from "@/storgae/s3";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { logAction } from "@/util/helper";
 
 
 const SPACE_NAME = process.env.SPACE_BUCKET_NAME!;
@@ -32,41 +33,58 @@ export async function uploadMultipleFiles(
     folder: "items" | "claims", 
     isPublic: boolean = true
 ): Promise<string[]> {
-    
-    const uploadPromises = files.map(async (file) => {
-        //  Web File to Node.js Buffer
-        const buffer = Buffer.from(await file.arrayBuffer());
-        
-        // Generate a unique filename to prevent guessing for ACL security purposes
-        const extension = file.name.split('.').pop();
-        const uniqueFileName = `${crypto.randomUUID()}.${extension}`;
-        const key = `${folder}/${uniqueFileName}`;
+    try {
+        const uploadPromises = files.map(async (file) => {
+            //  Web File to Node.js Buffer
+            const buffer = Buffer.from(await file.arrayBuffer());
 
-        // 3. Prepare the upload command
-        const command = new PutObjectCommand({
-            Bucket: SPACE_NAME,
-            Key: key,
-            Body: buffer,
-            ACL: isPublic ? "public-read" : "private",
-            ContentType: file.type,
+            // Generate a unique filename to prevent guessing for ACL security purposes
+            const extension = file.name.split('.').pop();
+            const uniqueFileName = `${crypto.randomUUID()}.${extension}`;
+            const key = `${folder}/${uniqueFileName}`;
+
+            // 3. Prepare the upload command
+            const command = new PutObjectCommand({
+                Bucket: SPACE_NAME,
+                Key: key,
+                Body: buffer,
+                ACL: isPublic ? "public-read" : "private",
+                ContentType: file.type,
+            });
+
+            //Fire the upload
+            await s3Client.send(command);
+
+            // Return the appropriate reference
+            if (isPublic) {
+                // Return the full public CDN URL so you can save it to Drizzle
+
+                return `https://${SPACE_NAME}.${process.env.SPACE_REGION}.cdn.digitaloceanspaces.com/${key}`;
+            }
+
+            // If private, return the key to presign later when the user wants to access it
+            return key;
         });
 
-        //Fire the upload
-        await s3Client.send(command);
+        // Execute all uploads at the exact same time
+        const uploadedReferences = await Promise.all(uploadPromises);
 
-        // Return the appropriate reference
-        if (isPublic) {
-            // Return the full public CDN URL so you can save it to Drizzle
-    
-            return `https://${SPACE_NAME}.${process.env.SPACE_REGION}.cdn.digitaloceanspaces.com/${key}`;
-        }
-        
-        // If private, return the key to presign later when the user wants to access it
-        return key; 
-    });
+        await logAction(
+            null,
+            "S3_FILES_UPLOADED",
+            `folder=${folder}; public=${isPublic}; count=${uploadedReferences.length}`
+        );
 
-    // Execute all uploads at the exact same time
-    return Promise.all(uploadPromises);
+        return uploadedReferences;
+    } catch (error) {
+        await logAction(
+            null,
+            "S3_FILES_UPLOAD_FAILED",
+            `folder=${folder}; public=${isPublic}; count=${files.length}`
+        );
+
+        throw error;
+    }
 }
 
 /**
@@ -79,16 +97,31 @@ export async function getSecurePresignedUrl(
     key: string, 
     expiresInSeconds: number = 300
 ): Promise<string> {
-    
-    const command = new GetObjectCommand({
-        Bucket: SPACE_NAME,
-        Key: key,
-    });
+    try {
+        const command = new GetObjectCommand({
+            Bucket: SPACE_NAME,
+            Key: key,
+        });
 
-    // Ask DigitalOcean to generate a cryptographic signature for this specific file
-    const signedUrl = await getSignedUrl(s3Client, command, { 
-        expiresIn: expiresInSeconds 
-    });
+        // Ask DigitalOcean to generate a cryptographic signature for this specific file
+        const signedUrl = await getSignedUrl(s3Client, command, {
+            expiresIn: expiresInSeconds
+        });
 
-    return signedUrl;
+        await logAction(
+            null,
+            "S3_PRESIGNED_URL_GENERATED",
+            `key=${key}; expiresInSeconds=${expiresInSeconds}`
+        );
+
+        return signedUrl;
+    } catch (error) {
+        await logAction(
+            null,
+            "S3_PRESIGNED_URL_FAILED",
+            `key=${key}; expiresInSeconds=${expiresInSeconds}`
+        );
+
+        throw error;
+    }
 }

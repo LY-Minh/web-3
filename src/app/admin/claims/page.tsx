@@ -50,7 +50,7 @@ export default function AdminClaimsPage() {
                             <tr key={claim.id} className="hover:bg-slate-50">
                                 <td className="px-6 py-4 flex items-center gap-3">
                                     <div className="h-10 w-10 relative rounded-lg overflow-hidden border">
-                                        <Image src={claim.image} alt="" fill className="object-cover" />
+                                        <Image src={claim.image} alt="" fill sizes="40px" className="object-cover" />
                                     </div>
                                     <span className="font-bold text-sm">{claim.item}</span>
                                 </td>

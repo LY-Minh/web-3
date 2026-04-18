@@ -9,8 +9,17 @@ const schema = {
     ...authSchema,
 };
 
+const rawDatabaseUrl = process.env.DATABASE_URL;
+
+if (!rawDatabaseUrl) {
+    throw new Error("DATABASE_URL is not defined.");
+}
+
+const normalizedDatabaseUrl = new URL(rawDatabaseUrl);
+normalizedDatabaseUrl.searchParams.delete("sslmode");
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL!,
+    connectionString: normalizedDatabaseUrl.toString(),
   
     ssl: {
         rejectUnauthorized: false 

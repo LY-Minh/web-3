@@ -1,5 +1,6 @@
 import { itemRepository } from "./itemRepository";
 import { uploadMultipleFiles } from "@/storgae/s3Service";
+import { logAction } from "@/util/helper";
 
 type CreateItemInput = {
     name: string;
@@ -30,8 +31,10 @@ type ItemStatus = "lost" | "claimed" | "approved_claim";
  */
 class ItemService {
     constructor ( private itemRepo: typeof itemRepository) {}
-    getItemsById(id: string) {
-        return this.itemRepo.getItemById(id);
+    async getItemsById(id: string) {
+        const item = await this.itemRepo.getItemById(id);
+        await logAction(null, "ITEM_FETCHED_BY_ID", `itemId=${id}; found=${Boolean(item)}`);
+        return item;
     }
 
     async createItem(input: CreateItemInput) {
@@ -51,7 +54,7 @@ class ItemService {
             };
         });
 
-        return this.itemRepo.createItemWithFiles(
+        const createdItem = await this.itemRepo.createItemWithFiles(
             {
                 name: input.name,
                 description: input.description,
@@ -60,6 +63,14 @@ class ItemService {
             },
             fileRows
         );
+
+        await logAction(
+            input.registeredById,
+            createdItem ? "ITEM_CREATED" : "ITEM_CREATE_FAILED",
+            `name=${input.name}; category=${input.category}; files=${input.files.length}`
+        );
+
+        return createdItem;
     }
 
     async updateItem(input: UpdateItemInput) {
@@ -90,7 +101,7 @@ class ItemService {
             });
         }
 
-        return this.itemRepo.updateItemWithFiles(
+        const updatedItem = await this.itemRepo.updateItemWithFiles(
             input.id,
             {
                 name: input.name,
@@ -99,14 +110,30 @@ class ItemService {
             },
             fileRows
         );
+
+        await logAction(
+            input.updatedById,
+            updatedItem ? "ITEM_UPDATED" : "ITEM_UPDATE_FAILED",
+            `itemId=${input.id}; files=${files.length}`
+        );
+
+        return updatedItem;
     }
 
     async deleteItem(id: string) {
-        return this.itemRepo.deleteItemById(id);
+        const deletedItem = await this.itemRepo.deleteItemById(id);
+        await logAction(null, deletedItem ? "ITEM_DELETED" : "ITEM_DELETE_FAILED", `itemId=${id}`);
+        return deletedItem;
     }
 
     async updateItemStatus(id: string, status: ItemStatus) {
-        return this.itemRepo.updateItemStatus(id, status);
+        const updatedStatus = await this.itemRepo.updateItemStatus(id, status);
+        await logAction(
+            null,
+            updatedStatus ? "ITEM_STATUS_UPDATED" : "ITEM_STATUS_UPDATE_FAILED",
+            `itemId=${id}; status=${status}`
+        );
+        return updatedStatus;
     }
 }
 

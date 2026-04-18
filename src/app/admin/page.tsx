@@ -14,6 +14,7 @@ import {
   WalletCards,
   Plus,
   Printer,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,7 +22,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -125,7 +125,7 @@ function getStatusBadgeClass(status: string) {
   }
 }
 
-function SidebarItem({ icon: Icon, label, active = false, trailing = false }: { icon: any, label: string, active?: boolean, trailing?: boolean }) {
+function SidebarItem({ icon: Icon, label, active = false, trailing = false }: { icon: LucideIcon, label: string, active?: boolean, trailing?: boolean }) {
   return (
     <button className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition ${active ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}>
       <span className="flex items-center gap-3">
@@ -271,7 +271,7 @@ export default function AdminPage() {
                             <td className="py-4">
                               <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-lg bg-slate-100 relative overflow-hidden shrink-0">
-                                  <Image src={claim.image} alt={claim.item} fill className="object-cover" />
+                                  <Image src={claim.image} alt={claim.item} fill sizes="40px" className="object-cover" />
                                 </div>
                                 <div>
                                   <p className="text-sm font-bold text-slate-900">{claim.item}</p>
