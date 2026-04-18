@@ -2,7 +2,8 @@ import { userProfileRepository } from "./userProfileRepository";
 import { logAction } from "@/util/helper";
 
 type UserProfileInput = {
-	fullName: string | null;
+	name: string;
+	email: string;
 	contactNumber: string | null;
 	bio: string | null;
 };

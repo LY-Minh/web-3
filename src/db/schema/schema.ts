@@ -1,7 +1,7 @@
 
 import { pgTable, text, timestamp, uuid, pgEnum, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { userTable } from "./auth-schema";
-import { user } from "../../../auth-schema";
+
 
 // enums
 export const userRoleEnum = pgEnum("user_role", ["student", "admin"]);

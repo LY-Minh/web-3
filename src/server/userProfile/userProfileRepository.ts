@@ -4,17 +4,20 @@ import { userProfilesTable } from "@/db/schema/schema";
 import { eq } from "drizzle-orm";
 import { userTable } from "@/db/schema/auth-schema";
 
-type CreateOrEditUserProfile = {
+type CreateEditUserProfile = {
+    name: string;
+    email: string;
     contactNumber: string | null;
     bio: string | null;
 };
 
-type GetUserProfileResult = CreateOrEditUserProfile & {
-    name: string | null;
-    email: string;
-};
 class UserProfileRepository {
-    async getUserProfile(userId: string) : Promise<GetUserProfileResult | null> {
+    async getUserProfile(userId: string) : Promise<
+        (CreateEditUserProfile & {
+            name: string | null;
+            email: string;
+        }) | null
+    > {
         const [profile] = await db
             .select({
                 name: userTable.name,
@@ -31,19 +34,49 @@ class UserProfileRepository {
 
     }
 
-    async createUserProfile(userId: string, profileData: CreateOrEditUserProfile) {
-       return await db.insert(userProfilesTable).values({
-            ...profileData,
-            userId,
-        }).returning();
-    
+    async createUserProfile(userId: string, profileData: CreateEditUserProfile) {
+        return await this.updateUserProfile(userId, profileData);
     }
-    async updateUserProfile(userId: string, profileData: CreateOrEditUserProfile) {
-        return await db
-            .update(userProfilesTable)
-            .set(profileData)
-            .where(eq(userProfilesTable.userId, userId))
-            .returning();
+
+    async updateUserProfile(userId: string, profileData: CreateEditUserProfile) {
+        return await db.transaction(async (tx) => {
+            const [updatedUser] = await tx
+                .update(userTable)
+                .set({
+                    name: profileData.name,
+                    email: profileData.email,
+                    updatedAt: new Date(),
+                })
+                .where(eq(userTable.id, userId))
+                .returning({ id: userTable.id });
+
+            if (!updatedUser) {
+                return [];
+            }
+
+            const [updatedProfile] = await tx
+                .update(userProfilesTable)
+                .set({
+                    contactNumber: profileData.contactNumber,
+                    bio: profileData.bio,
+                    updatedAt: new Date(),
+                })
+                .where(eq(userProfilesTable.userId, userId))
+                .returning();
+
+            if (updatedProfile) {
+                return [updatedProfile];
+            }
+
+            return await tx
+                .insert(userProfilesTable)
+                .values({
+                    userId,
+                    contactNumber: profileData.contactNumber,
+                    bio: profileData.bio,
+                })
+                .returning();
+        });
     }
 }
 

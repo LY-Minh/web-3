@@ -1,8 +1,9 @@
 "use client";
 import StudentProfileMenu from "@/components/student-profile-menu";
 import { useStudentProfile } from "@/components/student-profile-context";
+import { authClient } from "@/auth/auth-client";
 import Link from "next/link";
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   ChevronRight,
   FolderKanban,
@@ -12,8 +13,18 @@ import {
 } from "lucide-react";
 import styles from "./account_setting.module.css";
 
+type UserProfileResponse = {
+  name?: string | null;
+  email?: string;
+  contactNumber?: string | null;
+  bio?: string | null;
+  error?: string;
+};
+
 export default function AccountSettingsPage() {
   const { profile, updateProfile } = useStudentProfile();
+  const { data: sessionData } = authClient.useSession();
+  const userId = sessionData?.user?.id ?? null;
 
   const [formData, setFormData] = useState<{
     fullName: string;
@@ -30,6 +41,46 @@ export default function AccountSettingsPage() {
   };
 
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      if (!userId) {
+        return;
+      }
+
+      try {
+        const profileRes = await fetch(`/api/student/user-profile/${userId}`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const data = (await profileRes.json()) as UserProfileResponse;
+        if (!profileRes.ok || data.error || !isMounted) return;
+
+        setFormData({
+          fullName: data.name ?? profile.fullName,
+          email: data.email ?? profile.email,
+          phone: data.contactNumber ?? "",
+          bio: data.bio ?? "",
+        });
+      } catch {
+        if (isMounted) {
+          setErrorMessage("Failed to load profile.");
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId, profile.fullName, profile.email]);
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -46,21 +97,65 @@ export default function AccountSettingsPage() {
     }));
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    updateProfile({
-      fullName: resolvedFormData.fullName,
-      email: resolvedFormData.email,
-      phone: resolvedFormData.phone,
-      bio: resolvedFormData.bio,
-    });
+    if (!userId) {
+      setErrorMessage("Unable to resolve current user.");
+      return;
+    }
 
-    setSuccessMessage("Profile updated successfully.");
+    setIsSaving(true);
+    setErrorMessage("");
 
-    setTimeout(() => {
-      setSuccessMessage("");
-    }, 1800);
+    try {
+      const res = await fetch(`/api/student/user-profile/${userId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: resolvedFormData.fullName.trim(),
+          email: resolvedFormData.email.trim(),
+          contactNumber: resolvedFormData.phone.trim() || null,
+          bio: resolvedFormData.bio.trim() || null,
+        }),
+      });
+
+      const data = (await res.json()) as UserProfileResponse;
+
+      if (!res.ok || data.error) {
+        setErrorMessage(data.error || "Failed to update profile.");
+        return;
+      }
+
+      const nextProfile = {
+        fullName: data.name ?? resolvedFormData.fullName,
+        email: data.email ?? resolvedFormData.email,
+        phone: data.contactNumber ?? "",
+        bio: data.bio ?? "",
+      };
+
+      setFormData(nextProfile);
+      updateProfile(nextProfile);
+
+      setSuccessMessage("Profile updated successfully.");
+
+      setTimeout(() => {
+        setSuccessMessage("");
+      }, 1800);
+    } catch {
+      setErrorMessage("Failed to update profile.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData(null);
+    setSuccessMessage("");
+    setErrorMessage("");
   };
 
   return (
@@ -184,12 +279,29 @@ export default function AccountSettingsPage() {
                 <div className={styles.successMessage}>{successMessage}</div>
               )}
 
+              {errorMessage && (
+                <div
+                  className={styles.successMessage}
+                  style={{
+                    background: "#fff0f1",
+                    borderColor: "#f2c8cd",
+                    color: "#b42318",
+                  }}
+                >
+                  {errorMessage}
+                </div>
+              )}
+
               <div className={styles.formActions}>
-                <button type="button" className={styles.cancelBtn}>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={handleCancel}
+                >
                   Cancel
                 </button>
-                <button type="submit" className={styles.saveBtn}>
-                  Save Changes
+                <button type="submit" className={styles.saveBtn} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
