@@ -57,7 +57,7 @@ export const pickupAgreementsTable = pgTable("pickup_agreements", {
     claimId: uuid("claim_id").references(() => claimsTable.id).notNull(),
     itemId: uuid("item_id").references(() => itemsTable.id).notNull(),
     studentId: text("student_id").references(() => userTable.id).notNull(),
-    signedAt: timestamp("signed_at").defaultNow().notNull(),
+    signedAt: timestamp("signed_at").defaultNow(),
     adminId: text("admin_id").references(() => userTable.id).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
