@@ -221,7 +221,7 @@ export function AgreementPrintDocument({
 							I verify that the student listed above has been identified and the item has
 							 been released according to policy.
 						</Text>
-						<Text style={styles.signatureLine}>Admin Signature</Text>
+						<Text style={styles.signatureLine}>Student Signature</Text>
 					</View>
 				</View>
 
