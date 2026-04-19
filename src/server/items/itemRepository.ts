@@ -49,7 +49,48 @@ type UpdateItemParams = {
 
 type UpdateFileParams = CreateFileParams;
 
+type ItemFileRecord = {
+    id: string;
+    itemId: string | null;
+    fileName: string;
+    fileType: string | null;
+    fileUrl: string;
+    uploadedAt: Date;
+};
+
 class ItemRepository {
+    private async getActiveFilesByItemIds(itemIds: string[]) {
+        const filesByItemId = new Map<string, ItemFileRecord[]>();
+
+        if (itemIds.length === 0) {
+            return filesByItemId;
+        }
+
+        const files = await db
+            .select({
+                id: filesTable.id,
+                itemId: filesTable.itemId,
+                fileName: filesTable.fileName,
+                fileType: filesTable.fileType,
+                fileUrl: filesTable.fileUrl,
+                uploadedAt: filesTable.uploadedAt,
+            })
+            .from(filesTable)
+            .where(and(inArray(filesTable.itemId, itemIds), eq(filesTable.isActive, true)))
+            .orderBy(desc(filesTable.uploadedAt));
+
+        for (const file of files) {
+            if (!file.itemId) {
+                continue;
+            }
+
+            const itemFiles = filesByItemId.get(file.itemId) ?? [];
+            itemFiles.push(file);
+            filesByItemId.set(file.itemId, itemFiles);
+        }
+
+        return filesByItemId;
+    }
   
     async getAllItems(filters: GetAllItemsFilters = {}) {
         const search = filters.search?.trim();
@@ -75,28 +116,48 @@ class ItemRepository {
             whereClauses.push(inArray(itemsTable.status, statuses));
         }
 
+        let items;
+
         if (whereClauses.length > 0) {
             const filteredQuery = db.select().from(itemsTable).where(and(...whereClauses));
 
             if (search) {
-                return filteredQuery.orderBy(
+                items = await filteredQuery.orderBy(
                     sql`similarity(${itemsTable.name}, ${search}) desc`,
                     desc(itemsTable.createdAt)
                 );
+            } else {
+                items = await filteredQuery.orderBy(desc(itemsTable.createdAt));
             }
-
-            return filteredQuery.orderBy(desc(itemsTable.createdAt));
+        } else {
+            items = await db.select().from(itemsTable).orderBy(desc(itemsTable.createdAt));
         }
 
-        return db.select().from(itemsTable).orderBy(desc(itemsTable.createdAt));
+        const filesByItemId = await this.getActiveFilesByItemIds(items.map((item) => item.id));
+
+        return items.map((item) => ({
+            ...item,
+            files: filesByItemId.get(item.id) ?? [],
+        }));
     }
+
     async getItemById(id: string) {
         const [item] = await db
             .select()
             .from(itemsTable)
             .where(eq(itemsTable.id, id))
             .limit(1);
-        return item ?? null;
+
+        if (!item) {
+            return null;
+        }
+
+        const filesByItemId = await this.getActiveFilesByItemIds([item.id]);
+
+        return {
+            ...item,
+            files: filesByItemId.get(item.id) ?? [],
+        };
     }
 
     async createItemWithFiles(item: CreateItemParams, files: CreateFileParams[]) {
