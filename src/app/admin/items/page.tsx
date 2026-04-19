@@ -10,7 +10,6 @@ import {
   Eye,
   FileCheck2,
   History,
-  LogOut,
   Package,
   Plus,
   Search,
@@ -18,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import styles from "./items.module.css";
+import AdminLogoutButton from "@/components/admin-logout-button";
 
 type ItemCategory = "electronics" | "clothing" | "accessories" | "documents" | "other";
 type ItemStatus = "lost" | "claimed" | "approved_claim" | "picked_up";
@@ -444,9 +444,7 @@ export default function AdminItemsPage() {
         </div>
 
         <div className={styles.sidebarBottom}>
-          <button className={styles.logoutBtn}>
-            <LogOut size={18} /> Logout
-          </button>
+          <AdminLogoutButton className={styles.logoutBtn} />
         </div>
       </aside>
 

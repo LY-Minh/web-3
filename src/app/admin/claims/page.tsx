@@ -7,12 +7,12 @@ import {
   ChevronDown,
   FileCheck2,
   History,
-  LogOut,
   Package,
   Search,
   X,
 } from "lucide-react";
 import styles from "../items/items.module.css";
+import AdminLogoutButton from "@/components/admin-logout-button";
 
 type ClaimStatus = "pending" | "approved" | "rejected";
 
@@ -187,9 +187,7 @@ export default function AdminClaimsPage() {
         </div>
 
         <div className={styles.sidebarBottom}>
-          <button className={styles.logoutBtn}>
-            <LogOut size={18} /> Logout
-          </button>
+          <AdminLogoutButton className={styles.logoutBtn} />
         </div>
       </aside>
 

@@ -5,12 +5,12 @@ import Link from "next/link";
 import {
   FileCheck2,
   History,
-  LogOut,
   Package,
   Printer,
   Search,
 } from "lucide-react";
 import styles from "./agreements.module.css";
+import AdminLogoutButton from "@/components/admin-logout-button";
 
 type ClaimStatus = "pending" | "approved" | "rejected";
 
@@ -213,9 +213,7 @@ export default function AdminAgreementsPage() {
           </nav>
         </div>
         <div className={styles.sidebarBottom}>
-          <button className={styles.logoutBtn}>
-            <LogOut size={18} /> Logout
-          </button>
+          <AdminLogoutButton className={styles.logoutBtn} />
         </div>
       </aside>
 
