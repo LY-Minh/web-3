@@ -1,6 +1,7 @@
 "use client";
 
 import StudentProfileMenu from "@/components/student-profile-menu";
+import Image from "next/image";
 import Link from "next/link";
 import {
   useCallback,
@@ -29,6 +30,15 @@ type ItemCategory =
 
 type ItemStatus = "lost" | "claimed" | "approved_claim" | "picked_up";
 
+type ItemFile = {
+  id: string;
+  itemId: string | null;
+  fileName: string;
+  fileType: string | null;
+  fileUrl: string;
+  uploadedAt: string;
+};
+
 type Item = {
   id: string;
   name: string;
@@ -38,7 +48,15 @@ type Item = {
   registeredById: string;
   createdAt: string;
   updatedAt: string;
+  files: ItemFile[];
 };
+
+const IMAGE_FILE_PATTERN = /\.(png|jpe?g|gif|webp|bmp|svg|avif)(\?.*)?$/i;
+
+const isImageFile = (file: ItemFile) =>
+  file.fileType?.startsWith("image/") ||
+  IMAGE_FILE_PATTERN.test(file.fileName) ||
+  IMAGE_FILE_PATTERN.test(file.fileUrl);
 
 const CATEGORY_LABELS: Record<ItemCategory, string> = {
   electronics: "Electronics",
@@ -79,17 +97,39 @@ export default function StudentPage() {
   const [categoryFilter, setCategoryFilter] = useState<"all" | ItemCategory>(
     "all"
   );
+  const [statusFilter, setStatusFilter] = useState<"all" | "lost" | "claimed">(
+    "all"
+  );
   const [sortBy, setSortBy] = useState("newest");
 
   const [detailItem, setDetailItem] = useState<Item | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [activeDetailImageIndex, setActiveDetailImageIndex] = useState(0);
 
   const loadItems = useCallback(async () => {
     setIsLoadingItems(true);
     setItemsError(null);
 
     try {
-      const response = await fetch("/api/student/items", {
+      const query = new URLSearchParams();
+
+      if (searchTerm.trim()) {
+        query.set("q", searchTerm.trim());
+      }
+
+      if (categoryFilter !== "all") {
+        query.append("category", categoryFilter);
+      }
+
+      if (statusFilter !== "all") {
+        query.append("status", statusFilter);
+      }
+
+      const requestUrl = query.toString()
+        ? `/api/student/items?${query.toString()}`
+        : "/api/student/items";
+
+      const response = await fetch(requestUrl, {
         method: "GET",
         credentials: "include",
       });
@@ -116,7 +156,7 @@ export default function StudentPage() {
     } finally {
       setIsLoadingItems(false);
     }
-  }, []);
+  }, [searchTerm, categoryFilter, statusFilter]);
 
   useEffect(() => {
     void loadItems();
@@ -124,11 +164,13 @@ export default function StudentPage() {
 
   const openDetailModal = (item: Item) => {
     setDetailItem(item);
+    setActiveDetailImageIndex(0);
     setShowDetailModal(true);
   };
 
   const closeDetailModal = () => {
     setDetailItem(null);
+    setActiveDetailImageIndex(0);
     setShowDetailModal(false);
   };
 
@@ -238,22 +280,9 @@ export default function StudentPage() {
   };
 
   const displayedItems = useMemo(() => {
-    let filtered = [...items];
+    const sortedItems = [...items];
 
-    if (searchTerm.trim()) {
-      filtered = filtered.filter((item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter(
-        (item) =>
-          item.category === categoryFilter
-      );
-    }
-
-    filtered.sort((a, b) => {
+    sortedItems.sort((a, b) => {
       const left = new Date(a.createdAt).getTime();
       const right = new Date(b.createdAt).getTime();
 
@@ -264,8 +293,21 @@ export default function StudentPage() {
       return left - right;
     });
 
-    return filtered;
-  }, [items, searchTerm, categoryFilter, sortBy]);
+    return sortedItems;
+  }, [items, sortBy]);
+
+  const detailImages = useMemo(() => {
+    if (!detailItem) {
+      return [] as ItemFile[];
+    }
+
+    return detailItem.files.filter(isImageFile);
+  }, [detailItem]);
+
+  const activeDetailImage =
+    detailImages.length > 0
+      ? detailImages[Math.min(activeDetailImageIndex, detailImages.length - 1)]
+      : null;
 
   return (
     <div className={styles.studentPage}>
@@ -347,7 +389,11 @@ export default function StudentPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <button className={styles.searchBtn} type="button">
+            <button
+              className={styles.searchBtn}
+              type="button"
+              onClick={() => void loadItems()}
+            >
               Search
             </button>
           </div>
@@ -366,6 +412,20 @@ export default function StudentPage() {
               <option value="accessories">Accessories</option>
               <option value="documents">Documents</option>
               <option value="other">Other</option>
+            </select>
+            <ChevronDown size={18} />
+          </div>
+
+          <div className={styles.filterSelect}>
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as "all" | "lost" | "claimed")
+              }
+            >
+              <option value="all">All Status</option>
+              <option value="lost">Lost</option>
+              <option value="claimed">Claimed</option>
             </select>
             <ChevronDown size={18} />
           </div>
@@ -390,22 +450,33 @@ export default function StudentPage() {
               displayedItems.map((item) => (
                 <div className={styles.itemCard} key={item.id}>
                   <div className={styles.itemImageWrap}>
-                    <div
-                      className={styles.itemImage}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "grid",
-                        placeItems: "center",
-                        background: "#eaf0fa",
-                        color: "#31415f",
-                        fontWeight: 700,
-                        padding: "16px",
-                        textAlign: "center",
-                      }}
-                    >
-                      {CATEGORY_LABELS[item.category]}
-                    </div>
+                    {item.files.some(isImageFile) ? (
+                      <Image
+                        src={item.files.find(isImageFile)?.fileUrl ?? ""}
+                        alt={item.name}
+                        width={640}
+                        height={480}
+                        unoptimized
+                        className={styles.itemImage}
+                      />
+                    ) : (
+                      <div
+                        className={styles.itemImage}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          display: "grid",
+                          placeItems: "center",
+                          background: "#eaf0fa",
+                          color: "#31415f",
+                          fontWeight: 700,
+                          padding: "16px",
+                          textAlign: "center",
+                        }}
+                      >
+                        {CATEGORY_LABELS[item.category]}
+                      </div>
+                    )}
                   </div>
 
                   <div className={styles.itemInfo}>
@@ -599,21 +670,79 @@ export default function StudentPage() {
             </div>
 
             <div className={styles.detailContent}>
-              <div className={styles.detailImageWrap}>
-                <div
-                  className={styles.detailImage}
-                  style={{
-                    display: "grid",
-                    placeItems: "center",
-                    background: "#eaf0fa",
-                    color: "#31415f",
-                    fontWeight: 700,
-                    textAlign: "center",
-                    padding: "16px",
-                  }}
-                >
-                  {CATEGORY_LABELS[detailItem.category]}
+              <div className={styles.detailMediaColumn}>
+                <div className={styles.detailImageWrap}>
+                  {activeDetailImage ? (
+                    <Image
+                      src={activeDetailImage.fileUrl}
+                      alt={`${detailItem.name} preview`}
+                      width={960}
+                      height={960}
+                      unoptimized
+                      className={styles.detailImage}
+                    />
+                  ) : (
+                    <div
+                      className={styles.detailImage}
+                      style={{
+                        display: "grid",
+                        placeItems: "center",
+                        background: "#eaf0fa",
+                        color: "#31415f",
+                        fontWeight: 700,
+                        textAlign: "center",
+                        padding: "16px",
+                      }}
+                    >
+                      {CATEGORY_LABELS[detailItem.category]}
+                    </div>
+                  )}
                 </div>
+
+                {detailImages.length > 1 && (
+                  <div className={styles.detailThumbGrid}>
+                    {detailImages.map((file, index) => (
+                      <button
+                        key={file.id}
+                        type="button"
+                        className={`${styles.detailThumbButton} ${
+                          index === activeDetailImageIndex
+                            ? styles.detailThumbActive
+                            : ""
+                        }`}
+                        onClick={() => setActiveDetailImageIndex(index)}
+                      >
+                        <Image
+                          src={file.fileUrl}
+                          alt={`${detailItem.name} ${index + 1}`}
+                          width={200}
+                          height={200}
+                          unoptimized
+                          className={styles.detailThumbImage}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {detailItem.files.length > 0 && (
+                  <div className={styles.detailFilesPanel}>
+                    <span className={styles.detailLabel}>Files</span>
+                    <div className={styles.detailFilesLinks}>
+                      {detailItem.files.map((file) => (
+                        <a
+                          key={file.id}
+                          href={file.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.detailFileLink}
+                        >
+                          {file.fileName}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className={styles.detailInfo}>

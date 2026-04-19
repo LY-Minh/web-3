@@ -101,6 +101,36 @@ class ClaimRepository {
         return claim ?? null;
     }
 
+    async getClaimByIdWithFiles(id: string) {
+        const [claim] = await db
+            .select()
+            .from(claimsTable)
+            .where(eq(claimsTable.id, id))
+            .limit(1);
+
+        if (!claim) {
+            return null;
+        }
+
+        const files = await db
+            .select({
+                id: filesTable.id,
+                claimId: filesTable.claimId,
+                fileName: filesTable.fileName,
+                fileType: filesTable.fileType,
+                fileUrl: filesTable.fileUrl,
+                s3Key: filesTable.s3Key,
+                uploadedAt: filesTable.uploadedAt,
+            })
+            .from(filesTable)
+            .where(and(eq(filesTable.claimId, id), eq(filesTable.isActive, true)));
+
+        return {
+            ...claim,
+            files,
+        };
+    }
+
     async getAllClaims() {
         return db.select().from(claimsTable);
     }

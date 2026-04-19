@@ -4,7 +4,7 @@ import { auth } from "@/auth/auth";
 import { claimService } from "@/server/claims/claimService";
 
 const FileClaim = z.object({
-    itemId: z.uuid("Invalid UUID format"),
+    itemId: z.string("Invalid UUID format"),
     proofDescription: z.string().trim().min(10, "Proof description must be at least 10 characters"),
 });
 

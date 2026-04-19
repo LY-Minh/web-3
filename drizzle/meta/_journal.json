@@ -50,6 +50,13 @@
       "when": 1776144333089,
       "tag": "0006_boring_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776526711599,
+      "tag": "0007_wild_revanche",
+      "breakpoints": true
     }
   ]
 }

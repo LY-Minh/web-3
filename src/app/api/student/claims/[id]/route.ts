@@ -20,7 +20,7 @@ export const GET = async (
             return NextResponse.json({ error: "Claim id is required" }, { status: 400 });
         }
 
-        const claim = await claimService.getClaimById(id);
+        const claim = await claimService.getClaimDetailById(id);
 
         if (!claim) {
             return NextResponse.json({ error: "Claim not found" }, { status: 404 });
