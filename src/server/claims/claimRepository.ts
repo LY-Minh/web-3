@@ -96,15 +96,6 @@ class ClaimRepository {
         });
     }
 
-    async getClaimById(id: string) {
-        const [claim] = await db
-            .select()
-            .from(claimsTable)
-            .where(eq(claimsTable.id, id))
-            .limit(1);
-
-        return claim ?? null;
-    }
 
     async getClaimByIdWithFiles(id: string) {
         const [claim] = await db
@@ -168,12 +159,7 @@ class ClaimRepository {
             .where(eq(claimsTable.studentId, studentId));
     }
 
-    async getClaimsByItemId(itemId: string) {
-        return db
-            .select()
-            .from(claimsTable)
-            .where(eq(claimsTable.itemId, itemId));
-    }
+
 
     async hasClaimForItemByStudent(itemId: string, studentId: string) {
         const [claim] = await db
@@ -188,6 +174,22 @@ class ClaimRepository {
             .limit(1);
 
         return Boolean(claim);
+    }
+
+    async getClaimEmailContext(claimId: string) {
+        const [context] = await db
+            .select({
+                studentName: studentUser.name,
+                studentEmail: studentUser.email,
+                itemName: itemsTable.name,
+            })
+            .from(claimsTable)
+            .innerJoin(itemsTable, eq(claimsTable.itemId, itemsTable.id))
+            .innerJoin(studentUser, eq(claimsTable.studentId, studentUser.id))
+            .where(eq(claimsTable.id, claimId))
+            .limit(1);
+
+        return context ?? null;
     }
 
     async reviewClaim(
