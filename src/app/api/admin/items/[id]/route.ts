@@ -9,6 +9,41 @@ const UpdateItemBody = z.object({
 	category: z.enum(["electronics", "clothing", "accessories", "documents", "other"]).optional(),
 });
 
+export const GET = async (
+	req: NextRequest,
+	{ params }: { params: Promise<{ id: string }> }
+) => {
+	try {
+		const session = await auth.api.getSession({
+			headers: req.headers,
+		});
+
+		if (!session?.user?.id) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		if (session.user.role !== "admin") {
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+		}
+
+		const { id } = await params;
+		if (!id) {
+			return NextResponse.json({ error: "Item id is required" }, { status: 400 });
+		}
+
+		const item = await itemService.getItemsById(id);
+
+		if (!item) {
+			return NextResponse.json({ error: "Item not found" }, { status: 404 });
+		}
+
+		return NextResponse.json(item, { status: 200 });
+	} catch (error) {
+		console.error("Error fetching item:", error);
+		return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+	}
+};
+
 export const PUT = async (
 	req: NextRequest,
 	{ params }: { params: Promise<{ id: string }> }
@@ -20,6 +55,10 @@ export const PUT = async (
 
 		if (!session?.user?.id) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		if (session.user.role !== "admin") {
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		}
 
 		const { id } = await params;
@@ -77,6 +116,10 @@ export const DELETE = async (
 
 		if (!session?.user?.id) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		if (session.user.role !== "admin") {
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		}
 
 		const { id } = await params;

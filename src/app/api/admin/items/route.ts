@@ -39,6 +39,10 @@ export const GET = async (req: NextRequest) => {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        if (session.user.role !== "admin") {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         const { searchParams } = new URL(req.url);
 
         const search = searchParams.get("q") ?? searchParams.get("search") ?? undefined;
@@ -89,6 +93,10 @@ export const POST = async (req: NextRequest) => {
 
         if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        if (session.user.role !== "admin") {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const formData = await req.formData();

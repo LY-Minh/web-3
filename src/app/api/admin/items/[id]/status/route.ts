@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/auth/auth";
 import { itemService } from "@/server/items/itemService";
 
 const UpdateStatusBody = z.object({
@@ -11,7 +11,7 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 	lost: ["claimed"],
 	claimed: ["approved_claim", "lost"],
 	approved_claim: [],
-};
+}; 
 
 export const PATCH = async (
 	req: NextRequest,
