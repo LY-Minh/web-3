@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileCheck2, History, LogOut, Package } from "lucide-react";
+import { FileCheck2, History, Package } from "lucide-react";
 import styles from "./logs.module.css";
+import AdminLogoutButton from "@/components/admin-logout-button";
 
 type LogEntry = {
   id: string;
@@ -102,9 +103,7 @@ export default function AdminLogsPage() {
           </nav>
         </div>
         <div className={styles.sidebarBottom}>
-          <button className={styles.logoutBtn}>
-            <LogOut size={18} /> Logout
-          </button>
+          <AdminLogoutButton className={styles.logoutBtn} />
         </div>
       </aside>
 

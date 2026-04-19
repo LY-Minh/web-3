@@ -1,13 +1,14 @@
 import { auth } from "@/auth/auth";
 import { NextResponse, type NextRequest } from "next/server";
-
+// middleware or proxy to protect routes and redirect based on auth status and role
+// it helps check cookies and role before allowing access to protected routes under /admin and /student
 function clearAuthCookies(response: NextResponse) {
   response.cookies.set("better-auth.session_token", "", {
     path: "/",
     maxAge: 0,
   });
-  response.cookies.set("__Secure-better-auth.session_token", "", {
-    path: "/",
+  response.cookies.set("__Secure-better-auth.session_token", "", { // secure cookie variant
+    path: "/", 
     maxAge: 0,
     secure: true,
   });
