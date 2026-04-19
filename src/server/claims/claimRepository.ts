@@ -1,6 +1,11 @@
 import { claimsTable, filesTable, itemsTable, pickupAgreementsTable } from "@/db/schema/schema";
+import { userTable } from "@/db/schema/auth-schema";
 import { db } from "@/db";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+
+const studentUser = alias(userTable, "claim_student_user");
+const reviewerUser = alias(userTable, "claim_reviewer_user");
 
 type CreateClaimParams = {
     itemId: string;
@@ -132,7 +137,28 @@ class ClaimRepository {
     }
 
     async getAllClaims() {
-        return db.select().from(claimsTable);
+        return db
+            .select({
+                id: claimsTable.id,
+                itemId: claimsTable.itemId,
+                studentId: claimsTable.studentId,
+                proofDescription: claimsTable.proofDescription,
+                status: claimsTable.status,
+                reviewedById: claimsTable.reviewedById,
+                createdAt: claimsTable.createdAt,
+                updatedAt: claimsTable.updatedAt,
+                itemName: itemsTable.name,
+                itemCategory: itemsTable.category,
+                itemStatus: itemsTable.status,
+                studentName: studentUser.name,
+                studentEmail: studentUser.email,
+                reviewerName: reviewerUser.name,
+            })
+            .from(claimsTable)
+            .innerJoin(itemsTable, eq(claimsTable.itemId, itemsTable.id))
+            .innerJoin(studentUser, eq(claimsTable.studentId, studentUser.id))
+            .leftJoin(reviewerUser, eq(claimsTable.reviewedById, reviewerUser.id))
+            .orderBy(desc(claimsTable.createdAt));
     }
 
     async getClaimsByStudentId(studentId: string) {
