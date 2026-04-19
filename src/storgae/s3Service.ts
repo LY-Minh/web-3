@@ -6,6 +6,25 @@ import { logAction } from "@/util/helper";
 
 const SPACE_NAME = process.env.SPACE_BUCKET_NAME!;
 
+const normalizeObjectKey = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        try {
+            const parsed = new URL(trimmed);
+            const key = parsed.pathname.replace(/^\/+/, "");
+            return key || null;
+        } catch {
+            return null;
+        }
+    }
+
+    return trimmed;
+};
+
 /**
  * Flow DocBlock:
  * The type of items is divided into 2 categories: "items" (public) and "claims" (private).
@@ -97,10 +116,16 @@ export async function getSecurePresignedUrl(
     key: string, 
     expiresInSeconds: number = 300
 ): Promise<string> {
+    const normalizedKey = normalizeObjectKey(key);
+
+    if (!normalizedKey) {
+        throw new Error("INVALID_OBJECT_KEY");
+    }
+
     try {
         const command = new GetObjectCommand({
             Bucket: SPACE_NAME,
-            Key: key,
+            Key: normalizedKey,
         });
 
         // Ask DigitalOcean to generate a cryptographic signature for this specific file
@@ -111,7 +136,7 @@ export async function getSecurePresignedUrl(
         await logAction(
             null,
             "S3_PRESIGNED_URL_GENERATED",
-            `key=${key}; expiresInSeconds=${expiresInSeconds}`
+            `key=${normalizedKey}; expires in seconds=${expiresInSeconds}`
         );
 
         return signedUrl;
@@ -119,7 +144,7 @@ export async function getSecurePresignedUrl(
         await logAction(
             null,
             "S3_PRESIGNED_URL_FAILED",
-            `key=${key}; expiresInSeconds=${expiresInSeconds}`
+            `key=${normalizedKey}; expires in seconds=${expiresInSeconds}`
         );
 
         throw error;

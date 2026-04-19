@@ -79,6 +79,9 @@ export default function StudentPage() {
   const [categoryFilter, setCategoryFilter] = useState<"all" | ItemCategory>(
     "all"
   );
+  const [statusFilter, setStatusFilter] = useState<"all" | "lost" | "claimed">(
+    "all"
+  );
   const [sortBy, setSortBy] = useState("newest");
 
   const [detailItem, setDetailItem] = useState<Item | null>(null);
@@ -89,7 +92,25 @@ export default function StudentPage() {
     setItemsError(null);
 
     try {
-      const response = await fetch("/api/student/items", {
+      const query = new URLSearchParams();
+
+      if (searchTerm.trim()) {
+        query.set("q", searchTerm.trim());
+      }
+
+      if (categoryFilter !== "all") {
+        query.append("category", categoryFilter);
+      }
+
+      if (statusFilter !== "all") {
+        query.append("status", statusFilter);
+      }
+
+      const requestUrl = query.toString()
+        ? `/api/student/items?${query.toString()}`
+        : "/api/student/items";
+
+      const response = await fetch(requestUrl, {
         method: "GET",
         credentials: "include",
       });
@@ -116,7 +137,7 @@ export default function StudentPage() {
     } finally {
       setIsLoadingItems(false);
     }
-  }, []);
+  }, [searchTerm, categoryFilter, statusFilter]);
 
   useEffect(() => {
     void loadItems();
@@ -238,22 +259,9 @@ export default function StudentPage() {
   };
 
   const displayedItems = useMemo(() => {
-    let filtered = [...items];
+    const sortedItems = [...items];
 
-    if (searchTerm.trim()) {
-      filtered = filtered.filter((item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter(
-        (item) =>
-          item.category === categoryFilter
-      );
-    }
-
-    filtered.sort((a, b) => {
+    sortedItems.sort((a, b) => {
       const left = new Date(a.createdAt).getTime();
       const right = new Date(b.createdAt).getTime();
 
@@ -264,8 +272,8 @@ export default function StudentPage() {
       return left - right;
     });
 
-    return filtered;
-  }, [items, searchTerm, categoryFilter, sortBy]);
+    return sortedItems;
+  }, [items, sortBy]);
 
   return (
     <div className={styles.studentPage}>
@@ -347,7 +355,11 @@ export default function StudentPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <button className={styles.searchBtn} type="button">
+            <button
+              className={styles.searchBtn}
+              type="button"
+              onClick={() => void loadItems()}
+            >
               Search
             </button>
           </div>
@@ -366,6 +378,20 @@ export default function StudentPage() {
               <option value="accessories">Accessories</option>
               <option value="documents">Documents</option>
               <option value="other">Other</option>
+            </select>
+            <ChevronDown size={18} />
+          </div>
+
+          <div className={styles.filterSelect}>
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as "all" | "lost" | "claimed")
+              }
+            >
+              <option value="all">All Status</option>
+              <option value="lost">Lost</option>
+              <option value="claimed">Claimed</option>
             </select>
             <ChevronDown size={18} />
           </div>

@@ -1,5 +1,5 @@
 import { claimRepository } from "./claimRepository";
-import { uploadMultipleFiles } from "@/storgae/s3Service";
+import { getSecurePresignedUrl, uploadMultipleFiles } from "@/storgae/s3Service";
 import { logAction } from "@/util/helper";
 
 type CreateClaimInput = {
@@ -17,6 +17,15 @@ type ReviewClaimInput = {
 
 class ClaimService {
     constructor(private repo: typeof claimRepository) {}
+
+    private cleanClaimFileKey(file: { s3Key: string; fileUrl: string }) {
+        const preferred = file.s3Key?.trim();
+        if (preferred) {
+            return preferred;
+        }
+
+        return file.fileUrl;
+    }
 
     async hasExistingClaim(itemId: string, studentId: string) {
         const exists = await this.repo.hasClaimForItemByStudent(itemId, studentId);
@@ -62,6 +71,54 @@ class ClaimService {
         const claim = await this.repo.getClaimById(id);
         await logAction(null, "CLAIM_FETCHED_BY_ID", `claimId=${id}; found=${Boolean(claim)}`);
         return claim;
+    }
+
+    async getClaimDetailById(id: string) {
+        const claim = await this.repo.getClaimByIdWithFiles(id);
+
+        if (!claim) {
+            await logAction(null, "CLAIM_FETCHED_BY_ID", `claimId=${id}; found=false`);
+            return null;
+        }
+
+        const files = await Promise.all(
+            claim.files.map(async (file) => {
+                try {
+                    const key = this.cleanClaimFileKey(file);
+                    const accessUrl = await getSecurePresignedUrl(key);
+                    return {
+                        id: file.id,
+                        claimId: file.claimId,
+                        fileName: file.fileName,
+                        fileType: file.fileType,
+                        uploadedAt: file.uploadedAt,
+                        accessUrl,
+                    };
+                } catch {
+                    return {
+                        id: file.id,
+                        claimId: file.claimId,
+                        fileName: file.fileName,
+                        fileType: file.fileType,
+                        uploadedAt: file.uploadedAt,
+                        accessUrl: null,
+                    };
+                }
+            })
+        );
+
+        const claimDetail = {
+            ...claim,
+            files,
+        };
+
+        await logAction(
+            null,
+            "CLAIM_FETCHED_BY_ID",
+            `claimId=${id}; found=true; files=${files.length}`
+        );
+
+        return claimDetail;
     }
 
     async getAllClaims() {

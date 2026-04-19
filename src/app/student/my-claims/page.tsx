@@ -2,14 +2,8 @@
 
 import StudentProfileMenu from "@/components/student-profile-menu";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-  FolderKanban,
-  Home,
-  LogOut,
-} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronRight, FolderKanban, Home, LogOut, X } from "lucide-react";
 import styles from "./my-claims.module.css";
 
 type ClaimStatus = "pending" | "approved" | "rejected";
@@ -56,6 +50,19 @@ type ClaimItem = {
   status: ClaimStatus;
 };
 
+type ClaimFile = {
+  id: string;
+  claimId: string | null;
+  fileName: string;
+  fileType: string | null;
+  uploadedAt: string;
+  accessUrl: string | null;
+};
+
+type ClaimDetail = ClaimRecord & {
+  files: ClaimFile[];
+};
+
 const CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
   pending: "Under Review",
   approved: "Approved",
@@ -86,6 +93,19 @@ const formatDate = (value: string) => {
   return parsed.toLocaleDateString();
 };
 
+const shortenId = (value: string, prefixLength = 8, suffixLength = 6) => {
+  const text = value.trim();
+  if (!text) {
+    return "-";
+  }
+
+  if (text.length <= prefixLength + suffixLength + 3) {
+    return text;
+  }
+
+  return `${text.slice(0, prefixLength)}...${text.slice(-suffixLength)}`;
+};
+
 const getStatusClassName = (status: ClaimStatus) => {
   if (status === "approved") {
     return styles.statusApproved;
@@ -96,13 +116,109 @@ const getStatusClassName = (status: ClaimStatus) => {
   return styles.statusReview;
 };
 
+const detailOverlayStyle = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(11, 18, 32, 0.55)",
+  display: "grid",
+  placeItems: "center",
+  padding: "20px",
+  zIndex: 120,
+} as const;
+
+const detailModalStyle = {
+  width: "min(760px, 100%)",
+  maxHeight: "86vh",
+  background: "#ffffff",
+  borderRadius: "20px",
+  border: "1px solid #dfe7f2",
+  boxShadow: "0 20px 44px rgba(18, 36, 73, 0.2)",
+  overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+} as const;
+
+const detailHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "16px",
+  alignItems: "flex-start",
+  padding: "20px 22px",
+  borderBottom: "1px solid #e8edf6",
+  background: "linear-gradient(135deg, #f3f7ff 0%, #fbfdff 100%)",
+} as const;
+
+const detailContentStyle = {
+  padding: "20px 22px 22px",
+  overflowY: "auto",
+  overflowX: "hidden",
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+} as const;
+
+const detailGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "10px 16px",
+} as const;
+
+const detailRowStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+  padding: "12px",
+  border: "1px solid #e8edf6",
+  borderRadius: "12px",
+  background: "#fbfdff",
+  minWidth: 0,
+} as const;
+
+const detailLabelStyle = {
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#4b5f80",
+  margin: 0,
+} as const;
+
+const detailValueStyle = {
+  color: "#24324a",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+} as const;
+
+const detailBlockStyle = {
+  border: "1px solid #e8edf6",
+  borderRadius: "14px",
+  background: "#ffffff",
+  padding: "14px",
+  minWidth: 0,
+} as const;
+
+const fileItemStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "flex-start",
+  border: "1px solid #e7edf7",
+  borderRadius: "12px",
+  background: "#f9fbff",
+  padding: "10px 12px",
+} as const;
+
+const fileInfoStyle = {
+  minWidth: 0,
+  flex: 1,
+} as const;
+
 export default function MyClaimsPage() {
   const [claims, setClaims] = useState<ClaimItem[]>([]);
   const [isLoadingClaims, setIsLoadingClaims] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [selectedClaimDetail, setSelectedClaimDetail] = useState<ClaimDetail | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const loadClaims = useCallback(async () => {
     setIsLoadingClaims(true);
@@ -183,25 +299,59 @@ export default function MyClaimsPage() {
     await loadClaims();
   };
 
-  const visibleClaims = useMemo(() => {
-    let filtered = [...claims];
+  const openClaimDetailModal = async (claimId: string) => {
+    setIsDetailModalOpen(true);
+    setIsLoadingDetail(true);
+    setDetailError(null);
+    setSelectedClaimDetail(null);
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(
-        (claim) =>
-          claim.status.toLowerCase() === statusFilter
-      );
+    try {
+      const response = await fetch(`/api/student/claims/${claimId}`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message =
+          typeof data?.error === "string"
+            ? data.error
+            : "Failed to load claim details.";
+        throw new Error(message);
+      }
+
+      if (!data || typeof data !== "object") {
+        throw new Error("Unexpected claim detail response.");
+      }
+
+      const detail = data as Partial<ClaimDetail>;
+      const normalizedFiles = Array.isArray(detail.files) ? detail.files : [];
+
+      setSelectedClaimDetail({
+        ...(detail as ClaimDetail),
+        files: normalizedFiles,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load claim details.";
+      setDetailError(message);
+    } finally {
+      setIsLoadingDetail(false);
     }
+  };
 
-    filtered = [...filtered].sort((a, b) => {
-      const left = new Date(a.submittedDate).getTime();
-      const right = new Date(b.submittedDate).getTime();
-      if (sortBy === "newest") return right - left;
-      return left - right;
-    });
+  const closeClaimDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setIsLoadingDetail(false);
+    setSelectedClaimDetail(null);
+    setDetailError(null);
+  };
 
-    return filtered;
-  }, [claims, statusFilter, sortBy]);
+  const activeClaimSummary = selectedClaimDetail
+    ? claims.find((claim) => claim.id === selectedClaimDetail.id) ?? null
+    : null;
 
   return (
     <div className={styles.studentPage}>
@@ -278,49 +428,23 @@ export default function MyClaimsPage() {
             Track the status of claims you submitted.
           </p>
 
-          <div className={styles.filtersRow}>
-            <div className={styles.filterSelect}>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Under Review</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-              <ChevronDown size={18} />
-            </div>
-
-            <div className={styles.filterSelect}>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-              </select>
-              <ChevronDown size={18} />
-            </div>
-          </div>
-
           {loadError && <p className={styles.stateMessage}>{loadError}</p>}
         </section>
 
         <section className={styles.claimsSection}>
-          <h3>My Claims ({visibleClaims.length})</h3>
+          <h3>My Claims ({claims.length})</h3>
 
           {isLoadingClaims ? (
             <p className={styles.emptyState}>Loading claims...</p>
           ) : loadError ? (
             <p className={styles.emptyState}>{loadError}</p>
-          ) : visibleClaims.length === 0 ? (
+          ) : claims.length === 0 ? (
             <p className={styles.emptyState}>
               No claims found yet. Submit a claim from Home and it will appear here.
             </p>
           ) : (
             <div className={styles.claimsGrid}>
-              {visibleClaims.map((claim) => (
+              {claims.map((claim) => (
                 <div className={styles.claimCard} key={claim.id}>
                   <div className={styles.claimTop}>
                     <div className={styles.claimImageWrap}>
@@ -362,6 +486,14 @@ export default function MyClaimsPage() {
 
                   <div className={styles.claimActions}>
                     <button
+                      className={styles.secondaryBtn}
+                      type="button"
+                      onClick={() => void openClaimDetailModal(claim.id)}
+                    >
+                      View Details
+                    </button>
+
+                    <button
                       className={styles.primaryBtn}
                       type="button"
                       onClick={handleRefreshClaims}
@@ -375,6 +507,123 @@ export default function MyClaimsPage() {
           )}
         </section>
       </main>
+
+      {isDetailModalOpen && (
+        <div
+          className={styles.modalOverlay}
+          style={detailOverlayStyle}
+          onClick={closeClaimDetailModal}
+        >
+          <div
+            className={styles.detailModal}
+            style={detailModalStyle}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.detailModalHeader} style={detailHeaderStyle}>
+              <div>
+                <h3>Claim Details</h3>
+                <p>
+                  {activeClaimSummary
+                    ? `Reviewing your claim for ${activeClaimSummary.itemName}`
+                    : "Reviewing your selected claim."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={styles.detailModalCloseBtn}
+                onClick={closeClaimDetailModal}
+                aria-label="Close claim details"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.detailModalContent} style={detailContentStyle}>
+              {isLoadingDetail ? (
+                <p className={styles.emptyState}>Loading claim details...</p>
+              ) : detailError ? (
+                <p className={styles.stateMessage}>{detailError}</p>
+              ) : selectedClaimDetail ? (
+                <>
+                  <div className={styles.detailGrid} style={detailGridStyle}>
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <span className={styles.detailLabel} style={detailLabelStyle}>Claim ID</span>
+                      <span
+                        className={styles.detailValue}
+                        style={detailValueStyle}
+                        title={selectedClaimDetail.id}
+                      >
+                        {shortenId(selectedClaimDetail.id)}
+                      </span>
+                    </div>
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <span className={styles.detailLabel} style={detailLabelStyle}>Submitted</span>
+                      <span className={styles.detailValue} style={detailValueStyle}>
+                        {formatDate(selectedClaimDetail.createdAt)}
+                      </span>
+                    </div>
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <span className={styles.detailLabel} style={detailLabelStyle}>Status</span>
+                      <span className={styles.detailValue} style={detailValueStyle}>
+                        {CLAIM_STATUS_LABELS[selectedClaimDetail.status]}
+                      </span>
+                    </div>
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <span className={styles.detailLabel} style={detailLabelStyle}>Claimed Item</span>
+                      <span
+                        className={styles.detailValue}
+                        style={detailValueStyle}
+                        title={activeClaimSummary?.itemName ?? selectedClaimDetail.itemId}
+                      >
+                        {activeClaimSummary?.itemName ?? shortenId(selectedClaimDetail.itemId)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.detailBlock} style={detailBlockStyle}>
+                    <p className={styles.detailLabel} style={detailLabelStyle}>Proof Description</p>
+                    <p className={styles.detailValue} style={detailValueStyle}>{selectedClaimDetail.proofDescription}</p>
+                  </div>
+
+                  <div className={styles.detailBlock} style={detailBlockStyle}>
+                    <p className={styles.detailLabel} style={detailLabelStyle}>Associated Files</p>
+                    {selectedClaimDetail.files.length === 0 ? (
+                      <p className={styles.emptyState}>No files are associated with this claim.</p>
+                    ) : (
+                      <ul className={styles.fileList}>
+                        {selectedClaimDetail.files.map((file) => (
+                          <li key={file.id} className={styles.fileItem} style={fileItemStyle}>
+                            <div className={styles.fileInfo} style={fileInfoStyle}>
+                              <p className={styles.fileName}>{file.fileName}</p>
+                              <p className={styles.fileMeta}>
+                                {file.fileType ?? "Unknown type"} • Uploaded {formatDate(file.uploadedAt)}
+                              </p>
+                            </div>
+
+                            {file.accessUrl ? (
+                              <a
+                                href={file.accessUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={styles.fileViewLink}
+                              >
+                                View File
+                              </a>
+                            ) : (
+                              <span className={styles.fileUnavailable}>Unavailable</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
