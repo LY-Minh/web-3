@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Check,
   ChevronDown,
+  Eye,
   FileCheck2,
   History,
   Package,
@@ -27,6 +28,135 @@ type AdminClaim = {
   studentEmail: string;
   reviewerName: string | null;
 };
+
+type ClaimFile = {
+  id: string;
+  claimId: string | null;
+  fileName: string;
+  fileType: string | null;
+  uploadedAt: string;
+  accessUrl: string | null;
+};
+
+type AdminClaimDetail = {
+  id: string;
+  itemId: string;
+  studentId: string;
+  proofDescription: string;
+  status: ClaimStatus;
+  reviewedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  files: ClaimFile[];
+};
+
+const detailOverlayStyle = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(11, 18, 32, 0.55)",
+  display: "grid",
+  placeItems: "center",
+  padding: "20px",
+  zIndex: 120,
+} as const;
+
+const detailModalStyle = {
+  width: "min(760px, 100%)",
+  maxHeight: "86vh",
+  background: "#ffffff",
+  borderRadius: "20px",
+  border: "1px solid #dfe7f2",
+  boxShadow: "0 20px 44px rgba(18, 36, 73, 0.2)",
+  overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+} as const;
+
+const detailHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "16px",
+  alignItems: "flex-start",
+  padding: "20px 22px",
+  borderBottom: "1px solid #e8edf6",
+  background: "linear-gradient(135deg, #f3f7ff 0%, #fbfdff 100%)",
+} as const;
+
+const detailContentStyle = {
+  padding: "20px 22px 22px",
+  overflowY: "auto",
+  overflowX: "hidden",
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+} as const;
+
+const detailGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "10px 16px",
+} as const;
+
+const detailRowStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+  padding: "12px",
+  border: "1px solid #e8edf6",
+  borderRadius: "12px",
+  background: "#fbfdff",
+  minWidth: 0,
+} as const;
+
+const detailLabelStyle = {
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#4b5f80",
+  margin: 0,
+} as const;
+
+const detailValueStyle = {
+  color: "#24324a",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+} as const;
+
+const detailBlockStyle = {
+  border: "1px solid #e8edf6",
+  borderRadius: "14px",
+  background: "#ffffff",
+  padding: "14px",
+  minWidth: 0,
+} as const;
+
+const fileItemStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "flex-start",
+  border: "1px solid #e7edf7",
+  borderRadius: "12px",
+  background: "#f9fbff",
+  padding: "10px 12px",
+} as const;
+
+const fileInfoStyle = {
+  minWidth: 0,
+  flex: 1,
+} as const;
+
+function shortenId(value: string, prefixLength = 8, suffixLength = 6) {
+  const text = value.trim();
+  if (!text) {
+    return "-";
+  }
+
+  if (text.length <= prefixLength + suffixLength + 3) {
+    return text;
+  }
+
+  return `${text.slice(0, prefixLength)}...${text.slice(-suffixLength)}`;
+}
 
 const STATUS_OPTIONS: Array<{ value: "" | ClaimStatus; label: string }> = [
   { value: "", label: "All Statuses" },
@@ -68,6 +198,10 @@ export default function AdminClaimsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | ClaimStatus>("");
   const [reviewingClaimId, setReviewingClaimId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [selectedClaimDetail, setSelectedClaimDetail] = useState<AdminClaimDetail | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const fetchClaims = useCallback(async () => {
     const response = await fetch("/api/admin/claims", { cache: "no-store" });
@@ -154,6 +288,54 @@ export default function AdminClaimsPage() {
       setReviewingClaimId(null);
     }
   }
+
+  async function openClaimDetailModal(claimId: string) {
+    setIsDetailModalOpen(true);
+    setIsLoadingDetail(true);
+    setSelectedClaimDetail(null);
+    setDetailError(null);
+
+    try {
+      const response = await fetch(`/api/admin/claims/${claimId}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const payload = (await response.json().catch(() => null)) as AdminClaimDetail | { error?: string } | null;
+
+      if (!response.ok) {
+        const message = payload && "error" in payload && typeof payload.error === "string"
+          ? payload.error
+          : "Failed to load claim details";
+        throw new Error(message);
+      }
+
+      if (!payload || !("id" in payload)) {
+        throw new Error("Invalid claim detail response");
+      }
+
+      setSelectedClaimDetail({
+        ...payload,
+        files: Array.isArray(payload.files) ? payload.files : [],
+      });
+    } catch (claimDetailError) {
+      const message = claimDetailError instanceof Error ? claimDetailError.message : "Failed to load claim details";
+      setDetailError(message);
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  }
+
+  function closeClaimDetailModal() {
+    setIsDetailModalOpen(false);
+    setIsLoadingDetail(false);
+    setSelectedClaimDetail(null);
+    setDetailError(null);
+  }
+
+  const activeClaimSummary = selectedClaimDetail
+    ? claims.find((claim) => claim.id === selectedClaimDetail.id) ?? null
+    : null;
 
   return (
     <div className={styles.adminPage}>
@@ -308,6 +490,12 @@ export default function AdminClaimsPage() {
                             {isPending ? (
                               <>
                                 <button
+                                  title="View claim details"
+                                  onClick={() => void openClaimDetailModal(claim.id)}
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
                                   title="Approve claim"
                                   disabled={isBusy}
                                   onClick={() => reviewClaim(claim.id, "approved")}
@@ -323,7 +511,15 @@ export default function AdminClaimsPage() {
                                 </button>
                               </>
                             ) : (
-                              <p className={styles.itemId}>{claim.reviewerName ? `By ${claim.reviewerName}` : "Reviewed"}</p>
+                              <>
+                                <button
+                                  title="View claim details"
+                                  onClick={() => void openClaimDetailModal(claim.id)}
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <p className={styles.itemId}>{claim.reviewerName ? `By ${claim.reviewerName}` : "Reviewed"}</p>
+                              </>
                             )}
                           </div>
                         </td>
@@ -336,6 +532,133 @@ export default function AdminClaimsPage() {
           </div>
         </div>
       </main>
+
+      {isDetailModalOpen && (
+        <div
+          className={styles.modalOverlay}
+          style={detailOverlayStyle}
+          onClick={closeClaimDetailModal}
+        >
+          <div
+            className={styles.detailModal}
+            style={detailModalStyle}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.detailModalHeader} style={detailHeaderStyle}>
+              <div>
+                <h3>Claim Details</h3>
+                <p>
+                  {activeClaimSummary
+                    ? `Reviewing ${activeClaimSummary.studentName}'s claim for ${activeClaimSummary.itemName}`
+                    : "Reviewing selected claim."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={styles.detailModalCloseBtn}
+                onClick={closeClaimDetailModal}
+                aria-label="Close claim details"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.detailModalContent} style={detailContentStyle}>
+              {isLoadingDetail ? (
+                <p className={styles.emptyRow} style={{ padding: 20 }}>Loading claim details...</p>
+              ) : detailError ? (
+                <p className={styles.emptyRow} style={{ padding: 20 }}>{detailError}</p>
+              ) : selectedClaimDetail ? (
+                <>
+                  <div className={styles.detailGrid} style={detailGridStyle}>
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <p className={styles.detailLabel} style={detailLabelStyle}>Claim ID</p>
+                      <p className={styles.detailValue} style={detailValueStyle} title={selectedClaimDetail.id}>
+                        {shortenId(selectedClaimDetail.id)}
+                      </p>
+                    </div>
+
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <p className={styles.detailLabel} style={detailLabelStyle}>Status</p>
+                      <p className={styles.detailValue} style={detailValueStyle}>{toLabel(selectedClaimDetail.status)}</p>
+                    </div>
+
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <p className={styles.detailLabel} style={detailLabelStyle}>Submitted</p>
+                      <p className={styles.detailValue} style={detailValueStyle}>
+                        {formatDateTime(selectedClaimDetail.createdAt).date} {formatDateTime(selectedClaimDetail.createdAt).time}
+                      </p>
+                    </div>
+
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <p className={styles.detailLabel} style={detailLabelStyle}>Last Updated</p>
+                      <p className={styles.detailValue} style={detailValueStyle}>
+                        {formatDateTime(selectedClaimDetail.updatedAt).date} {formatDateTime(selectedClaimDetail.updatedAt).time}
+                      </p>
+                    </div>
+
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <p className={styles.detailLabel} style={detailLabelStyle}>Item</p>
+                      <p className={styles.detailValue} style={detailValueStyle} title={activeClaimSummary?.itemName ?? selectedClaimDetail.itemId}>
+                        {activeClaimSummary?.itemName ?? shortenId(selectedClaimDetail.itemId)}
+                      </p>
+                    </div>
+
+                    <div className={styles.detailRow} style={detailRowStyle}>
+                      <p className={styles.detailLabel} style={detailLabelStyle}>Student</p>
+                      <p className={styles.detailValue} style={detailValueStyle}>
+                        {activeClaimSummary?.studentName ?? shortenId(selectedClaimDetail.studentId)}
+                        {activeClaimSummary?.studentEmail ? ` (${activeClaimSummary.studentEmail})` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className={styles.detailBlock} style={detailBlockStyle}>
+                    <p className={styles.detailLabel} style={detailLabelStyle}>Proof Description</p>
+                    <p className={styles.detailValue} style={detailValueStyle}>{selectedClaimDetail.proofDescription}</p>
+                  </div>
+
+                  <div className={styles.detailBlock} style={detailBlockStyle}>
+                    <p className={styles.detailLabel} style={detailLabelStyle}>Claim Files</p>
+
+                    {selectedClaimDetail.files.length === 0 ? (
+                      <p className={styles.emptyRow} style={{ padding: 16 }}>No files attached to this claim.</p>
+                    ) : (
+                      <ul className={styles.fileList} style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                        {selectedClaimDetail.files.map((file) => (
+                          <li key={file.id} className={styles.fileItem} style={fileItemStyle}>
+                            <div className={styles.fileInfo} style={fileInfoStyle}>
+                              <p className={styles.itemName}>{file.fileName}</p>
+                              <p className={styles.itemId}>
+                                {file.fileType ?? "Unknown type"} • Uploaded {formatDateTime(file.uploadedAt).date}
+                              </p>
+                            </div>
+
+                            {file.accessUrl ? (
+                              <a
+                                href={file.accessUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={styles.primaryBtn}
+                                style={{ textDecoration: "none", padding: "7px 12px", fontSize: 12 }}
+                              >
+                                View File
+                              </a>
+                            ) : (
+                              <span className={styles.itemId}>Unavailable</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
