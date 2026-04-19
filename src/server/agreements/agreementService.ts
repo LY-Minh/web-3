@@ -4,7 +4,7 @@ import { agreementRepository } from "./agreementRepository";
 import {
 	AgreementPrintDocument,
 	type AgreementPrintData,
-} from "./view/AgreementPrintDocument";
+} from "@/view/pdf/AgreementPrintDocument";
 
 type CreateAgreementInput = {
 	claimId: string;

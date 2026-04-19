@@ -1,7 +1,7 @@
 import { claimRepository } from "./claimRepository";
 import { getSecurePresignedUrl, uploadMultipleFiles } from "@/storgae/s3Service";
 import { logAction } from "@/util/helper";
-
+import { sendStatusUpdateEmail } from "@/mail/emailService";
 type CreateClaimInput = {
     itemId: string;
     studentId: string;
@@ -67,11 +67,7 @@ class ClaimService {
         return createdClaim;
     }
 
-    async getClaimById(id: string) {
-        const claim = await this.repo.getClaimById(id);
-        await logAction(null, "CLAIM_FETCHED_BY_ID", `claimId=${id}; found=${Boolean(claim)}`);
-        return claim;
-    }
+
 
     async getClaimDetailById(id: string) {
         const claim = await this.repo.getClaimByIdWithFiles(id);
@@ -133,11 +129,7 @@ class ClaimService {
         return claims;
     }
 
-    async getClaimsByItemId(itemId: string) {
-        const claims = await this.repo.getClaimsByItemId(itemId);
-        await logAction(null, "CLAIMS_FETCHED_BY_ITEM", `itemId=${itemId}; count=${claims.length}`);
-        return claims;
-    }
+   
 
     async reviewClaim(input: ReviewClaimInput) {
         const reviewedClaim = await this.repo.reviewClaim(input.claimId, {
@@ -150,6 +142,19 @@ class ClaimService {
             reviewedClaim ? "CLAIM_REVIEWED" : "CLAIM_REVIEW_FAILED",
             `claimId=${input.claimId}; status=${input.status}`
         );
+
+        if (reviewedClaim) {
+            const emailContext = await this.repo.getClaimEmailContext(input.claimId);
+
+            if (emailContext?.studentEmail) {
+                await sendStatusUpdateEmail(
+                    emailContext.studentEmail,
+                    emailContext.studentName,
+                    emailContext.itemName,
+                    input.status
+                );
+            }
+        }
 
         return reviewedClaim;
     }
