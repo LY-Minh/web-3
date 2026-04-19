@@ -178,9 +178,7 @@ export function AgreementPrintDocument({
 						<Text style={styles.label}>Claim Status</Text>
 						<Text style={styles.value}>{agreement.claimStatus}</Text>
 					</View>
-					<Text style={styles.paragraph}>
-						Proof Statement: {agreement.claimProofDescription}
-					</Text>
+		
 				</View>
 
 				<View style={styles.section}>
