@@ -218,15 +218,14 @@ export function AgreementPrintDocument({
 
 					<View style={styles.signatureBlock}>
 						<Text>
-							I verify that the student listed above has been identified and the item has
-							 been released according to policy.
+							I confirm that I have been identified as the rightful owner of the item listed above and have received it in the condition described. I acknowledge that this pickup has been completed and the item has been released to me.
 						</Text>
 						<Text style={styles.signatureLine}>Student Signature</Text>
 					</View>
 				</View>
 
 				<Text style={styles.footer}>
-					Campus Lost & Found System • This document is system-generated.
+					Campus Lost & Found System.This document is system-generated.
 				</Text>
 			</Page>
 		</Document>
