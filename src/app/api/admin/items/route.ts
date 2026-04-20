@@ -15,14 +15,16 @@ const Item = z.object({
     description: z.string(),
     category: z.enum(["electronics", "clothing", "accessories", "documents", "other"])
 });
-
+// handle inconsistent frontend query parameters for filtering, allowing both "q" or "search" for search term, and supporting multiple values for category and status filters separated by commas
+// for example, 
+// filter by status can be done by /api/admin/items?status=lost&status=claimed or /api/admin/items?status=lost,claimed
 const parseMultiValue = (searchParams: URLSearchParams, key: string) =>
     searchParams
         .getAll(key)
         .flatMap((value) => value.split(","))
         .map((value) => value.trim().toLowerCase())
         .filter((value) => value.length > 0);
-
+// filtering system to ensure strict typing and only allow valid category
 const isItemCategory = (value: string): value is ItemCategory =>
     ITEM_CATEGORY_VALUES.includes(value as ItemCategory);
 
