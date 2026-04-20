@@ -6,7 +6,7 @@ import { userProfileService } from "@/server/userProfile/userProfileService";
 const EditUserProfileBody = z
 	.object({
 		name: z.string().trim().min(1).max(120).optional(),
-		email: z.string().trim().email().optional(),
+		email: z.email().optional(),
 		contactNumber: z.string().trim().min(1).max(30).nullable().optional(),
 		bio: z.string().trim().max(1000).nullable().optional(),
 	})
@@ -51,7 +51,7 @@ export const GET = async (
 	}
 };
 
-export const PUT = async (
+export const PATCH = async (
 	req: NextRequest,
 	{ params }: { params: Promise<{ userId: string }> }
 ) => {
