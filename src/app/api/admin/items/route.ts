@@ -44,8 +44,9 @@ export const GET = async (req: NextRequest) => {
         if (session.user.role !== "admin") {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-
-        const { searchParams } = new URL(req.url);
+        // https://nodejs.org/api/url.html#the-whatwg-url-api
+        // using URL and URLSearchParams to parse query parameters for better handling of multiple values and edge cases
+        const { searchParams } = new URL(req.url); 
 
         const search = searchParams.get("q") ?? searchParams.get("search") ?? undefined;
         const rawCategories = parseMultiValue(searchParams, "category");
