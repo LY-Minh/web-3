@@ -1,3 +1,4 @@
+// return a HTML string for the status update email
 export const statusUpdateHTML = (username: string, itemName: string, claimStatus: string) => {
     return `
     <html>

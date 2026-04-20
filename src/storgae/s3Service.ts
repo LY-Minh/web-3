@@ -55,6 +55,9 @@ export async function uploadMultipleFiles(
     try {
         const uploadPromises = files.map(async (file) => {
             //  Web File to Node.js Buffer
+            // The S3 library expects a Node Buffer for file contents
+            // normally files are of JS File type, which is a web API
+            // so we need to convert it into a web buffer first to get rid of meta data then convert it into a node buffer
             const buffer = Buffer.from(await file.arrayBuffer());
 
             // Generate a unique filename to prevent guessing for ACL security purposes
@@ -62,12 +65,12 @@ export async function uploadMultipleFiles(
             const uniqueFileName = `${crypto.randomUUID()}.${extension}`;
             const key = `${folder}/${uniqueFileName}`;
 
-            // 3. Prepare the upload command
+            // Prepare the upload command
             const command = new PutObjectCommand({
                 Bucket: SPACE_NAME,
                 Key: key,
                 Body: buffer,
-                ACL: isPublic ? "public-read" : "private",
+                ACL: isPublic ? "public-read" : "private", // decide between public or private based on the folder type and use ACL to set permissions at upload time, which is more secure than making it public later
                 ContentType: file.type,
             });
 
@@ -76,7 +79,7 @@ export async function uploadMultipleFiles(
 
             // Return the appropriate reference
             if (isPublic) {
-                // Return the full public CDN URL so you can save it to Drizzle
+                // Return the full public CDN URL and save to drizzle
 
                 return `https://${SPACE_NAME}.${process.env.SPACE_REGION}.cdn.digitaloceanspaces.com/${key}`;
             }
@@ -116,6 +119,9 @@ export async function getSecurePresignedUrl(
     key: string, 
     expiresInSeconds: number = 300
 ): Promise<string> {
+    // Since we store a whole path for public file, and only key for private file
+    // We need to normalize the key because the library is very strict about the format
+    // there is no prefix "/" and no empty space nor "https://" allowed, otherwise it will throw error and fail to generate the presigned url
     const normalizedKey = normalizeObjectKey(key);
 
     if (!normalizedKey) {

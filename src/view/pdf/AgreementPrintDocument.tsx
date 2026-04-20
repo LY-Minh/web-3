@@ -1,3 +1,6 @@
+// react-pdf library native lag
+// this is mainly use for generating the PDF document structure and content
+
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 export type AgreementPrintData = {

@@ -33,7 +33,7 @@ import * as schema from "@/db/schema/auth-schema";
         })
     ],
     session: {
-        expiresIn: 604800
+        expiresIn: 604800 // 7 days in seconds
     },
     emailAndPassword: { 
     enabled: true, 

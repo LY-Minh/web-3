@@ -26,18 +26,21 @@ type ClaimReviewParams = {
     adminId: string;
 };
 
+
 class ClaimRepository {
+    // create a claim and its file, also update the item status to "claimed"
     async createClaimWithStatusUpdate(
         claim: CreateClaimParams,
         files: CreateClaimFileParams[] = []
     ) {
+        // get the item
         return db.transaction(async (tx) => {
             const [item] = await tx
                 .select()
                 .from(itemsTable)
                 .where(eq(itemsTable.id, claim.itemId))
                 .limit(1);
-
+        // guard clause to handle error early
             if (!item) {
                 throw new Error("ITEM_NOT_FOUND");
             }
@@ -45,7 +48,8 @@ class ClaimRepository {
             if (item.status === "approved_claim") {
                 throw new Error("ITEM_NOT_CLAIMABLE");
             }
-
+        // prevent duplicate claims for the same item by the same student
+        // this can easily happen
             const [existingClaim] = await tx
                 .select({ id: claimsTable.id })
                 .from(claimsTable)
@@ -60,7 +64,7 @@ class ClaimRepository {
             if (existingClaim) {
                 throw new Error("DUPLICATE_CLAIM");
             }
-
+        // create the claim record in the database with status to "pending" (db default value)
             const [createdClaim] = await tx
                 .insert(claimsTable)
                 .values(claim)
@@ -68,8 +72,8 @@ class ClaimRepository {
 
             if (!createdClaim) {
                 return null;
-            }
-
+            }   
+        // in case there are files attached to the claim, create the file records in the database
             if (files.length > 0) {
                 await tx.insert(filesTable).values(
                     files.map((file) => ({
@@ -81,7 +85,7 @@ class ClaimRepository {
                 );
             }
 
-            // Update item status to "claimed"
+        // Update item status to "claimed"
             if (item.status === "lost") {
                 await tx
                     .update(itemsTable)
@@ -96,8 +100,9 @@ class ClaimRepository {
         });
     }
 
-
+    // get claim by id with its attached files 
     async getClaimByIdWithFiles(id: string) {
+        // get the claim
         const [claim] = await db
             .select()
             .from(claimsTable)
@@ -107,7 +112,7 @@ class ClaimRepository {
         if (!claim) {
             return null;
         }
-
+        // get the files attached to the claim
         const files = await db
             .select({
                 id: filesTable.id,
@@ -120,13 +125,13 @@ class ClaimRepository {
             })
             .from(filesTable)
             .where(and(eq(filesTable.claimId, id), eq(filesTable.isActive, true)));
-
+        // return the claim with its files
         return {
             ...claim,
             files,
         };
     }
-
+    // get all claims with related data for admin dashboard
     async getAllClaims() {
         return db
             .select({
@@ -151,7 +156,7 @@ class ClaimRepository {
             .leftJoin(reviewerUser, eq(claimsTable.reviewedById, reviewerUser.id))
             .orderBy(desc(claimsTable.createdAt));
     }
-
+    // get all claims but limit to student id scope
     async getClaimsByStudentId(studentId: string) {
         return db
             .select()
@@ -159,8 +164,7 @@ class ClaimRepository {
             .where(eq(claimsTable.studentId, studentId));
     }
 
-
-
+    // custom function to check if a student has already made a claim for a specific item, used to prevent duplicate claims
     async hasClaimForItemByStudent(itemId: string, studentId: string) {
         const [claim] = await db
             .select({ id: claimsTable.id })
@@ -175,7 +179,7 @@ class ClaimRepository {
 
         return Boolean(claim);
     }
-
+    // get all the necessary information to send email notification to student when their claim is reviewed
     async getClaimEmailContext(claimId: string) {
         const [context] = await db
             .select({
@@ -191,12 +195,13 @@ class ClaimRepository {
 
         return context ?? null;
     }
-
+    // review claim function for admin
     async reviewClaim(
         id: string,
         reviewParams: ClaimReviewParams
     ) {
         return db.transaction(async (tx) => {
+            // get the claim
             const [claim] = await tx
                 .select()
                 .from(claimsTable)
@@ -206,7 +211,7 @@ class ClaimRepository {
             if (!claim) {
                 return null;
             }
-
+            // update the claim status, also set the reviewedById and updatedAt timestamp
             const [updatedClaim] = await tx
                 .update(claimsTable)
                 .set({
@@ -226,7 +231,8 @@ class ClaimRepository {
                     updatedAt: new Date(),
                 })
                 .where(eq(itemsTable.id, claim.itemId));
-
+            // if the claim is approved, create an agreement record for it, otherwise make sure to delete any existing agreement for the claim
+            // this is to ensure that double clicking or fetching via API multiple times won't create multiple agreements for the same claim
             if (reviewParams.status === "approved") {
                 const [existingAgreement] = await tx
                     .select({ id: pickupAgreementsTable.id })

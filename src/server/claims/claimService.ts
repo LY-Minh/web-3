@@ -17,7 +17,7 @@ type ReviewClaimInput = {
 
 class ClaimService {
     constructor(private repo: typeof claimRepository) {}
-
+    // clean the claim file key to get the correct s3 key for generating presigned url, this is needed to handle the transition period where some claim files may have fileUrl as the s3 key and some may have the actual s3Key field
     private cleanClaimFileKey(file: { s3Key: string; fileUrl: string }) {
         const preferred = file.s3Key?.trim();
         if (preferred) {
@@ -26,7 +26,7 @@ class ClaimService {
 
         return file.fileUrl;
     }
-
+    // helper function to help prevent potential duplicate claims for the same item by the same student
     async hasExistingClaim(itemId: string, studentId: string) {
         const exists = await this.repo.hasClaimForItemByStudent(itemId, studentId);
         await logAction(
@@ -36,7 +36,7 @@ class ClaimService {
         );
         return exists;
     }
-
+    // endpoint for student to file a claim
     async fileClaim(input: CreateClaimInput) {
         const uploadedKeys = await uploadMultipleFiles(input.files, "claims", false);
 
@@ -67,8 +67,7 @@ class ClaimService {
         return createdClaim;
     }
 
-
-
+    // for view claim details with secure file access for both admin and student
     async getClaimDetailById(id: string) {
         const claim = await this.repo.getClaimByIdWithFiles(id);
 
@@ -116,21 +115,20 @@ class ClaimService {
 
         return claimDetail;
     }
-
+    // get all claims for admin dashboard
     async getAllClaims() {
         const claims = await this.repo.getAllClaims();
         await logAction(null, "CLAIMS_FETCHED_ALL", `count=${claims.length}`);
         return claims;
     }
-
+    // get all claims for a specific student
     async getClaimsByStudentId(studentId: string) {
         const claims = await this.repo.getClaimsByStudentId(studentId);
         await logAction(studentId, "CLAIMS_FETCHED_BY_STUDENT", `count=${claims.length}`);
         return claims;
     }
 
-   
-
+    // endpoint for admin to review the claim and update the status
     async reviewClaim(input: ReviewClaimInput) {
         const reviewedClaim = await this.repo.reviewClaim(input.claimId, {
             status: input.status,

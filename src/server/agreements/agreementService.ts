@@ -14,7 +14,7 @@ type CreateAgreementInput = {
 
 class AgreementService {
 	constructor(private repo: typeof agreementRepository) {}
-
+	// create agreement record in the database when admin approves a claim
 	async createAgreement(input: CreateAgreementInput) {
 		const createdAgreement = await this.repo.createAgreement({
 			claimId: input.claimId,
@@ -30,7 +30,7 @@ class AgreementService {
 
 		return createdAgreement;
 	}
-
+	// get all agreements with related data for admin dashboard
 	async getAllAgreements(adminId: string) {
 		const agreements = await this.repo.getAllAgreements();
 
@@ -42,7 +42,7 @@ class AgreementService {
 
 		return agreements;
 	}
-
+	// get agreement with related data for generating the agreement print document
 	async getAgreementForPrint(agreementId: string, adminId: string) {
 		const agreement = await this.repo.getAgreementForPrint(agreementId);
 
@@ -54,7 +54,7 @@ class AgreementService {
 
 		return agreement;
 	}
-
+	// generate the agreement print document as a stream to be sent to client for download
 	async getAgreementPrintStream(agreementId: string, adminId: string) {
 		let agreement = await this.repo.getAgreementForPrint(agreementId);
 
@@ -62,7 +62,7 @@ class AgreementService {
 			await logAction(adminId, "AGREEMENT_PRINT_NOT_FOUND", `agreementId=${agreementId}`);
 			return null;
 		}
-
+		// only occurs for the first time when printing
 		if (!agreement.signedAt) {
 			await this.repo.markAgreementSignedOnFirstPrint(agreementId, new Date());
 			const refreshedAgreement = await this.repo.getAgreementForPrint(agreementId);
@@ -78,7 +78,7 @@ class AgreementService {
 
 			agreement = refreshedAgreement;
 		}
-
+		// prepare a node stream that is essential to print the agreement
 		const stream = await renderToStream(
 			AgreementPrintDocument({
 				agreement: agreement as AgreementPrintData,

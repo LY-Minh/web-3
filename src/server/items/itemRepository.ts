@@ -59,6 +59,8 @@ type ItemFileRecord = {
 };
 
 class ItemRepository {
+    // helper function to get active files for a list of item ids, returns a map of itemId to its active files
+    // files can be active and inactive based on the isActive field, when updating an item, all replaced files are not deleted but marked inactive
     private async getActiveFilesByItemIds(itemIds: string[]) {
         const filesByItemId = new Map<string, ItemFileRecord[]>();
 
@@ -91,7 +93,8 @@ class ItemRepository {
 
         return filesByItemId;
     }
-  
+    // get all items with optional filters for search, category and status, also returns the active files for each item
+    // the search will utilize trigram similarity for fuzzy search
     async getAllItems(filters: GetAllItemsFilters = {}) {
         const search = filters.search?.trim();
         const categories = filters.categories ?? [];
@@ -140,7 +143,7 @@ class ItemRepository {
             files: filesByItemId.get(item.id) ?? [],
         }));
     }
-
+    // get item in detail by id, also returns the active files for the item
     async getItemById(id: string) {
         const [item] = await db
             .select()
@@ -159,7 +162,7 @@ class ItemRepository {
             files: filesByItemId.get(item.id) ?? [],
         };
     }
-
+    // for admin to create a new item with its files, the files will be uploaded to s3 first to get the file urls and s3 keys, then the item record and file records will be created in the database in a transaction
     async createItemWithFiles(item: CreateItemParams, files: CreateFileParams[]) {
         return db.transaction(async (tx) => {
             const [createdItem] = await tx
@@ -180,7 +183,7 @@ class ItemRepository {
             return createdItem;
         });
     }
-
+    // update record and its files for items
     async updateItemWithFiles(id: string, item: UpdateItemParams, files: UpdateFileParams[]) {
         return db.transaction(async (tx) => {
             const [updatedItem] = await tx
@@ -214,7 +217,7 @@ class ItemRepository {
             return updatedItem;
         });
     }
-
+    // delete an item
     async deleteItemById(id: string) {
         return db.transaction(async (tx) => {
             const [existingItem] = await tx
@@ -243,7 +246,7 @@ class ItemRepository {
             return deletedItem ?? null;
         });
     }
-
+    // for admin to update item status, only allow specific status values, also log the action for auditing
     async updateItemStatus(id: string, status: ItemStatus) {
         const [updatedItem] = await db
             .update(itemsTable)

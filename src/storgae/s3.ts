@@ -2,6 +2,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 dotenv.config();
 
+// Set up a S3 client to interact with DigitalOcean Spaces
 const s3Client = new S3Client({
     region: process.env.SPACE_REGION!,
     endpoint: process.env.SPACE_ORIGIN_ENDPOINT!,

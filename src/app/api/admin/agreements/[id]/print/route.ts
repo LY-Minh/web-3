@@ -35,7 +35,8 @@ export const GET = async (
         // Convert Node.js Readable stream to Web ReadableStream 
         const webStream = Readable.toWeb(
             printPayload.stream as Readable 
-        ) as unknown as ReadableStream;
+        ) as ReadableStream; // Type assertion to ensure the stream is treated as a ReadableStream
+        // ReadableStream: https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
 
         return new NextResponse(webStream, {
             status: 200,

@@ -31,12 +31,13 @@ type ItemStatus = "lost" | "claimed" | "approved_claim";
  */
 class ItemService {
     constructor ( private itemRepo: typeof itemRepository) {}
+    // get items by its Id with its attached files
     async getItemsById(id: string) {
         const item = await this.itemRepo.getItemById(id);
         await logAction(null, "ITEM_FETCHED_BY_ID", `itemId=${id}; found=${Boolean(item)}`);
         return item;
     }
-
+    // create a new item with its attached files
     async createItem(input: CreateItemInput) {
         const uploadedUrls = await uploadMultipleFiles(input.files, "items", true);
 
@@ -72,7 +73,7 @@ class ItemService {
 
         return createdItem;
     }
-
+    // update an existing item with the option to add more files, but not delete existing files for simplicity and audit trail purposes
     async updateItem(input: UpdateItemInput) {
         const files = input.files ?? [];
         let fileRows: Array<{
@@ -119,13 +120,13 @@ class ItemService {
 
         return updatedItem;
     }
-
+    // delete an item by its Id, this will not delete the attached files in S3 for audit trail purposes, but will mark the files as inactive in the database so they won't be accessible anymore
     async deleteItem(id: string) {
         const deletedItem = await this.itemRepo.deleteItemById(id);
         await logAction(null, deletedItem ? "ITEM_DELETED" : "ITEM_DELETE_FAILED", `itemId=${id}`);
         return deletedItem;
     }
-
+    // update item status, this is used when admin approves a claim and the item status needs to be updated to "approved_claim"
     async updateItemStatus(id: string, status: ItemStatus) {
         const updatedStatus = await this.itemRepo.updateItemStatus(id, status);
         await logAction(
