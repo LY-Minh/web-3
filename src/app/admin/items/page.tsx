@@ -390,7 +390,7 @@ export default function AdminItemsPage() {
       }
 
       const response = await fetch(`/api/admin/items/${selectedItem.id}`, {
-        method: "PUT",
+        method: "PATCH",
         body: payload,
       });
 

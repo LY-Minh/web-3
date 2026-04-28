@@ -110,7 +110,7 @@ export default function AccountSettingsPage() {
 
     try {
       const res = await fetch(`/api/student/user-profile/${userId}`, {
-        method: "PUT",
+        method: "PATCH",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
